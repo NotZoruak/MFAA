@@ -37,15 +37,14 @@
             <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
-        <Style Selector="Border.strategy-condition">
-            <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
+        <Style Selector="ListBox#StrategyList &gt; ListBoxItem:selected Border#BorderBasicStyle">
+            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
         </Style>
-        <Style Selector="Border.strategy-section">
-            <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
+        <Style Selector="Border.strategy-drag-handle:pointerover TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+        </Style>
+        <Style Selector="Border.strategy-drag-handle:focus TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
         </Style>
         <Style Selector="ListBox#StrategyList &gt; ListBoxItem">
             <Setter Property="Template">
@@ -134,7 +133,7 @@
             <Setter Property="RenderTransform">
                 <ScaleTransform ScaleX="1.2" ScaleY="1.2" />
             </Setter>
-            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor75}" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
         </Style>
     </UserControl.Styles>
     <Grid ColumnDefinitions="225,12,*" Margin="12">
@@ -173,21 +172,43 @@
             </Grid>
         </Border>
         <Grid Grid.Column="2" RowDefinitions="*,Auto">
-            <ScrollViewer x:Name="StageScroll" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="12" Margin="0,0,8,12">
+            <ScrollViewer x:Name="StageScroll" HorizontalScrollBarVisibility="Disabled" Margin="0,0,8,8">
+                <StackPanel Spacing="12" Margin="0,0,0,12">
                     <StackPanel x:Name="StageCards" Spacing="12" />
                     <Button x:Name="AddStage" Content="＋" FontSize="26" Height="48"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             ToolTip.Tip="新增阶段" Click="OnAddStage" />
                 </StackPanel>
             </ScrollViewer>
-            <Border Grid.Row="1" Classes="strategy-card" CornerRadius="12" Padding="12" Margin="0,8,0,0">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                    <WrapPanel>
-                        <Button x:Name="SaveStrategy" Content="保存" Margin="0,0,8,0" Click="OnSaveStrategy" />
-                        <Button Content="全部展开" Margin="0,0,8,0" Click="OnExpandAll" />
-                        <Button Content="全部折叠" Click="OnCollapseAll" />
-                    </WrapPanel>
+            <Border Grid.Row="1" BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                    BorderThickness="0,1,0,0" Padding="8,10,8,4" Margin="0,8,8,0">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <Button x:Name="SaveStrategy" Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnSaveStrategy">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="保存" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnExpandAll">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="ArrowExpand" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="全部展开" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnCollapseAll">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="ArrowCollapseAll" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="全部折叠" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                     <TextBlock Grid.Column="1" x:Name="SaveStatus" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="55" />
                 </Grid>

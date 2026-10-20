@@ -24,7 +24,7 @@ internal static class StrategyUi
             Text = text, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center,
             FontSize = heading ? 15 : 13, FontWeight = heading ? FontWeight.SemiBold : FontWeight.Normal
         };
-        var color = heading ? "SukiPrimaryColor" : muted ? "SukiLowText" : "SukiText";
+        var color = muted ? "SukiLowText" : "SukiText";
         block.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension(color));
         return block;
     }
@@ -39,6 +39,7 @@ internal static class StrategyUi
     public static CheckBox Check(string label, bool value, Action<bool> changed)
     {
         var box = new CheckBox { Content = label, IsChecked = value, VerticalAlignment = VerticalAlignment.Center };
+        box.Classes.Add("strategy-check");
         box.Bind(CheckBox.ForegroundProperty, new DynamicResourceExtension("SukiText"));
         box.PropertyChanged += (_, e) => { if (e.Property == ToggleButton.IsCheckedProperty) changed(box.IsChecked == true); };
         return box;
@@ -104,7 +105,7 @@ internal static class StrategyUi
             Child = new TextBlock { Text = "⠿", FontSize = 22, VerticalAlignment = VerticalAlignment.Center },
             Padding = new Thickness(5), Focusable = true
         };
-        ((TextBlock)handle.Child).Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiPrimaryColor"));
+        ((TextBlock)handle.Child).Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiText"));
         // 光标由平台创建，挂载到实际界面时再获取。
         handle.AttachedToVisualTree += (_, _) => handle.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.SizeAll);
         ToolTip.SetTip(handle, "拖动排序；聚焦后可用上下方向键移动");
