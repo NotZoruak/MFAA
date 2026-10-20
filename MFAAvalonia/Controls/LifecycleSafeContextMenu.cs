@@ -7,6 +7,9 @@ namespace MFAAvalonia.Controls;
 
 public sealed class LifecycleSafeContextMenu : ContextMenu
 {
+    // 只扩展卸载保护，仍使用标准菜单的主题和绘制模板。
+    protected override Type StyleKeyOverride => typeof(ContextMenu);
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         try

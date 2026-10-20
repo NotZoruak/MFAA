@@ -91,7 +91,7 @@ public sealed class StrategyStageCard : UserControl
             Classes = { "DangerContextDelete" }
         };
         delete.Click += (_, _) => { try { session.DeleteStage(stage); } catch (InvalidOperationException ex) { showError(ex.Message); } };
-        header.ContextMenu = new MFAAvalonia.Controls.LifecycleSafeContextMenu { Items = { renameItem, copy, initial, delete } };
+        var menu = new MFAAvalonia.Controls.LifecycleSafeContextMenu { Items = { renameItem, copy, initial, delete } };
         _body.IsEnabled = !session.IsReadOnly;
         _body.Margin = new Thickness(14, 8, 14, 12);
         AddSection("行动优先级", BuildPriority(), "连线固定最后；普通操作与乱舞共用此顺序。");
@@ -112,7 +112,10 @@ public sealed class StrategyStageCard : UserControl
         {
             Child = header,
             Padding = new Thickness(14, 12),
-            BorderThickness = new Thickness(0, 0, 0, 1)
+            BorderThickness = new Thickness(0, 0, 0, 1),
+            // 整块标题栏接收右键，包括留白、边距和折叠箭头所在区域。
+            Background = Brushes.Transparent,
+            ContextMenu = menu
         };
         headerBorder.Bind(Border.BorderBrushProperty,
             new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension("SukiControlBorderBrush"));

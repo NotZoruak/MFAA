@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -2260,6 +2260,7 @@ public partial class TaskQueueView : UserControl
                 : combo.SelectedIndex;
 
             option.Index = resolvedIndex;
+            MFAAvalonia.Features.CombatStrategies.StrategyOptionProvider.RememberSelectedCase(option, selectedCase?.Name);
             UpdateSubOptions(resolvedIndex);
             SaveConfiguration();
         };

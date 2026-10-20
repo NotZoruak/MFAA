@@ -139,6 +139,7 @@ public sealed class StrategyConditionEditor : UserControl
                         predicate.SlotMatch = ConditionMatch.All;
                         _changed();
                     });
+                    position.Margin = new Thickness(0, 3, 14, 3);
                     ToolTip.SetTip(position, "多选时，所选位置都需满足此状态；任一满足请使用条件组。");
                     row.Children.Add(position);
                 }

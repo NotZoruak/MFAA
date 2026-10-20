@@ -172,12 +172,12 @@ internal static class StrategyReorder
         void SetTranslation(Control control, double x, double y, bool animate = true)
         {
             if (!originalTransforms.ContainsKey(control))
-                originalTransforms[control] = control.RenderTransform;
-            if (control.RenderTransform is not TranslateTransform transform)
             {
-                transform = new TranslateTransform();
-                control.RenderTransform = transform;
+                originalTransforms[control] = control.RenderTransform;
+                // 拖动预览使用独立变换，避免修改上次排序留下的待恢复动画对象。
+                control.RenderTransform = new TranslateTransform();
             }
+            var transform = (TranslateTransform)control.RenderTransform!;
             transform.Transitions = animate ? CreateTransitions() : null;
             transform.X = x;
             transform.Y = y;
