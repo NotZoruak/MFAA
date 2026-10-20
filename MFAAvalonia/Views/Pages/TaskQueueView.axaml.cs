@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
@@ -24,6 +25,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.ComponentModel;
 using System.Linq;
+using System.IO;
 using System.Text.RegularExpressions;
 using FontWeight = Avalonia.Media.FontWeight;
 using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
@@ -2846,7 +2848,22 @@ public partial class TaskQueueView : UserControl
         LanguageHelper.LanguageChanged -= OnLanguageChanged;
         LanguageHelper.LanguageChanged += OnLanguageChanged;
 
+        StrategyOptionProvider.CatalogRefreshed -= OnStrategyCatalogRefreshed;
+        StrategyOptionProvider.CatalogRefreshed += OnStrategyCatalogRefreshed;
+        RefreshStrategyOptionsPanel();
         UpdateViewModelSubscription(DataContext as TaskQueueViewModel);
+    }
+
+    private void OnStrategyCatalogRefreshed()
+    {
+        Dispatcher.UIThread.Post(RefreshStrategyOptionsPanel, DispatcherPriority.Background);
+    }
+
+    private void RefreshStrategyOptionsPanel()
+    {
+        StrategyOptionProvider.Refresh(MaaProcessor.Interface, Path.Combine(AppPaths.ConfigDirectory, "strategies"), LoggerHelper.Warning);
+        ClearOptionPanelCaches();
+        ReopenActiveTaskPanel();
     }
 
     private void OnSetOptionRequested(DragItemViewModel item, bool value)
@@ -2858,6 +2875,7 @@ public partial class TaskQueueView : UserControl
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         TopToolbar.SizeChanged -= OnTopToolbarSizeChanged;
+        StrategyOptionProvider.CatalogRefreshed -= OnStrategyCatalogRefreshed;
 
         UpdateViewModelSubscription(null);
     }

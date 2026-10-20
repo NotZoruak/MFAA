@@ -1,5 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 using SukiUI.Controls;
+using SukiUI.Content;
 using SukiUI.MessageBox;
 using System;
 using System.Threading.Tasks;
@@ -10,8 +14,27 @@ internal static class StrategyDialogs
 {
     private static Button Action(string label, SukiMessageBoxResult result, bool cancel = false)
     {
-        var button = SukiMessageBoxButtonsFactory.CreateButton(label, result);
+        var button = SukiMessageBoxButtonsFactory.CreateButton(label, result, "Flat");
         button.IsCancel = cancel;
+        button.IsDefault = result == SukiMessageBoxResult.OK;
+        var icon = new PathIcon
+        {
+            Width = 12,
+            Height = 12,
+            Foreground = Brushes.White,
+            Data = result == SukiMessageBoxResult.OK ? Icons.Check : Icons.Cancel
+        };
+        button.Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 5,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                icon,
+                new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center }
+            }
+        };
         return button;
     }
 

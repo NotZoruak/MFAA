@@ -9,6 +9,8 @@ namespace MFAAvalonia.Features.CombatStrategies;
 
 public static class StrategyOptionProvider
 {
+    public static event Action? CatalogRefreshed;
+
     public const string OptionName = "选择作战策略";
     public const string SelectedCaseDataKey = "__selected_strategy_case";
 
@@ -37,6 +39,12 @@ public static class StrategyOptionProvider
 
         option.Cases = CreateCases(directory, warning);
         option.DefaultCases = ["default"];
+    }
+
+    public static void RefreshAndNotify(MaaInterface? maaInterface, string directory, Action<string>? warning = null)
+    {
+        Refresh(maaInterface, directory, warning);
+        CatalogRefreshed?.Invoke();
     }
 
     public static void RememberSelectedCase(MaaInterface.MaaInterfaceSelectOption option, string? caseName)

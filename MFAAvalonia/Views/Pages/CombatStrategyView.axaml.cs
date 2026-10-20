@@ -1,12 +1,16 @@
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Features.CombatStrategies.Controls;
 using MFAAvalonia.Helper;
 using System;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -151,11 +155,12 @@ public partial class CombatStrategyView : UserControl
     private static void ApplyStrategyMenuEnabledStates(ContextMenu menu, StrategySummary strategy)
     {
         var menuItems = menu.Items?.OfType<MenuItem>().ToList();
-        if (menuItems is not { Count: 4 }) return;
+        if (menuItems is not { Count: 5 }) return;
         menuItems[0].IsEnabled = true;
         menuItems[1].IsEnabled = true;
-        menuItems[2].IsEnabled = !strategy.IsBuiltIn;
+        menuItems[2].IsEnabled = true;
         menuItems[3].IsEnabled = !strategy.IsBuiltIn;
+        menuItems[4].IsEnabled = !strategy.IsBuiltIn;
     }
 
     private StrategySummary? GetMenuStrategy(object? sender) =>
@@ -211,6 +216,103 @@ public partial class CombatStrategyView : UserControl
         finally { _operationPending = false; }
     }
 
+    private async void OnImportStrategy(object? sender, RoutedEventArgs e)
+    {
+        if (_operationPending) return;
+        _operationPending = true;
+        try
+        {
+            var storageProvider = Instances.StorageProvider;
+            if (storageProvider == null)
+            {
+                await StrategyDialogs.ErrorAsync("当前平台不支持导入文件。");
+                return;
+            }
+
+            var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "导入策略",
+                AllowMultiple = false,
+                FileTypeFilter =
+                [
+                    new FilePickerFileType("策略 JSON 文件")
+                    {
+                        Patterns = ["*.json"],
+                        MimeTypes = ["application/json"]
+                    }
+                ]
+            });
+            if (files.Count == 0) return;
+
+            string json;
+            await using (var stream = await files[0].OpenReadAsync())
+            using (var reader = new StreamReader(stream, Encoding.UTF8, true))
+                json = await reader.ReadToEndAsync();
+
+            var document = StrategyJson.Deserialize(json);
+            if (await ConfirmLeaveAsync()) Session.Duplicate(document);
+        }
+        catch (Exception ex)
+        {
+            await StrategyDialogs.ErrorAsync(ex.Message);
+        }
+        finally { _operationPending = false; }
+    }
+
+    private async void OnExportStrategy(object? sender, RoutedEventArgs e)
+    {
+        var strategy = GetMenuStrategy(sender);
+        if (strategy == null) return;
+
+        try
+        {
+            var storageProvider = Instances.StorageProvider;
+            if (storageProvider == null)
+            {
+                await StrategyDialogs.ErrorAsync("当前平台不支持导出文件。");
+                return;
+            }
+
+            var document = strategy.Id == Session.Current.Id
+                ? StrategyJson.Clone(Session.Current)
+                : Session.Load(strategy.Id);
+            var suggestedFileName = GetExportFileName(strategy.Name);
+            var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "导出策略",
+                SuggestedFileName = suggestedFileName,
+                DefaultExtension = "json",
+                FileTypeChoices =
+                [
+                    new FilePickerFileType("策略 JSON 文件")
+                    {
+                        Patterns = ["*.json"],
+                        MimeTypes = ["application/json"]
+                    }
+                ]
+            });
+            if (file == null) return;
+
+            var json = StrategyJson.Serialize(document);
+            await using var stream = await file.OpenWriteAsync();
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(json));
+            await stream.FlushAsync();
+            ToastHelper.Success("策略已导出", file.Name);
+        }
+        catch (Exception ex)
+        {
+            await StrategyDialogs.ErrorAsync(ex.Message);
+        }
+    }
+
+    private static string GetExportFileName(string name)
+    {
+        var invalidCharacters = Path.GetInvalidFileNameChars();
+        var safeName = new string(name.Select(character => invalidCharacters.Contains(character) ? '_' : character).ToArray()).Trim();
+        if (string.IsNullOrWhiteSpace(safeName)) safeName = "策略";
+        return safeName.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? safeName : safeName + ".json";
+    }
+
     private async void OnRenameStrategy(object? sender, RoutedEventArgs e)
     {
         var strategy = GetMenuStrategy(sender);
@@ -251,6 +353,7 @@ public partial class CombatStrategyView : UserControl
     private void OnRefreshStrategies(object? sender, RoutedEventArgs e)
     {
         Session.RefreshCatalog();
+        StrategyOptionProvider.RefreshAndNotify(MaaProcessor.Interface, Session.DirectoryPath, LoggerHelper.Warning);
         RefreshList();
         RefreshStatus();
     }
