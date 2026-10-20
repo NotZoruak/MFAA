@@ -2,7 +2,7 @@ using System;
 
 namespace MFAAvalonia.Helper;
 
-/// <summary>检测任务回调静默、长时间无点击和重复点击循环。</summary>
+/// <summary>检测任务回调静默、长时间无输入和重复点击循环。</summary>
 public sealed class TaskRecoveryMonitor
 {
     /// <summary>用于区分模拟器无响应的回调静默原因。</summary>
@@ -63,8 +63,20 @@ public sealed class TaskRecoveryMonitor
         lock (_gate)
         {
             if (_active)
+            {
+                _lastCallback = now;
                 _lastClick = now;
+            }
         }
+    }
+
+    public void RecordControllerAction(string action, TimeSpan now)
+    {
+        // 只接收已成功的输入动作，截图和连接事件不能掩盖任务停滞。
+        if (action is "click" or "swipe" or "multi_swipe"
+            or "touch_down" or "touch_move" or "touch_up"
+            or "click_key" or "key_down" or "key_up")
+            RecordActivity(now);
     }
 
     public string? GetReason(TimeSpan now, TimeSpan timeout, bool enabled, bool waiting)

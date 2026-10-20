@@ -29,6 +29,8 @@ build_output.txt
 # 策略编辑器的回归测试随功能保留，其他本地核对文件继续忽略。
 !/MFAAvalonia.Tests/MFAAvalonia.Tests.csproj
 !/MFAAvalonia.Tests/CombatStrategy*Tests.cs
+!/MFAAvalonia.Tests/TaskRecoveryMonitorTests.cs
+!/MFAAvalonia.Tests/TaskStopLifecycleTests.cs
 /MFAAvalonia/AssemblyInfo.cs
 workflows/android/__pycache__/mfa_android_agent.cpython-312.pyc
 # MAP 本地定制迁移设计文档

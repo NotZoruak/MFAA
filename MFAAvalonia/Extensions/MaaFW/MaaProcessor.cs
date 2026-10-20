@@ -509,6 +509,7 @@ public class MaaProcessor
     private volatile bool _isWaitingForModal = false;
     private readonly Stopwatch _recoveryClock = Stopwatch.StartNew();
     private readonly TaskRecoveryMonitor _recoveryMonitor = new();
+    private MaaController? _recoveryController;
     private int _isGameRecoveryRunning;
 
     /// <summary>
@@ -699,6 +700,7 @@ public class MaaProcessor
         ResetActionFailedCount();
         if (maaTasker == null)
         {
+            UnsubscribeRecoveryController();
             var oldTasker = MaaTasker;
             MaaTasker = null; // 先设置为 null，防止重复释放
             var taskerStopped = true;
@@ -1921,6 +1923,9 @@ public class MaaProcessor
             tasker.Releasing += (_, _) =>
             {
                 tasker.Callback -= HandleCallBack;
+                var releasedController = tasker.Controller;
+                if (ReferenceEquals(_recoveryController, releasedController))
+                    UnsubscribeRecoveryController();
             };
 
             try
@@ -1995,7 +2000,10 @@ public class MaaProcessor
             // from the queued MaaJob and video from the Shizuku display backend, so it
             // must not subscribe to this synchronous native callback stream.
             if (!OperatingSystem.IsAndroid())
+            {
                 tasker.Callback += HandleCallBack;
+                SubscribeRecoveryController(tasker.Controller);
+            }
             ResetScreencapFailureLogFlags();
             return (tasker, InvalidResource, ShouldRetry);
         }
@@ -2017,14 +2025,40 @@ public class MaaProcessor
         }
 
     }
-// public void HandleControllerCallBack(object? sender, MaaCallbackEventArgs args)
-// {
-//     var message = args.Message;
-//     if (message == MaaMsg.Controller.Action.Failed)
-//     {
-//         HandleScreencapFailure(true);
-//     }
-// }
+    private void SubscribeRecoveryController(MaaController? controller)
+    {
+        UnsubscribeRecoveryController();
+        _recoveryController = controller;
+        if (controller != null)
+            controller.Callback += HandleRecoveryControllerCallback;
+    }
+
+    private void UnsubscribeRecoveryController()
+    {
+        var controller = Interlocked.Exchange(ref _recoveryController, null);
+        if (controller != null)
+            controller.Callback -= HandleRecoveryControllerCallback;
+    }
+
+    private void HandleRecoveryControllerCallback(object? sender, MaaCallbackEventArgs args)
+    {
+        var controller = Volatile.Read(ref _recoveryController);
+        if (controller == null || !ReferenceEquals(sender, controller)
+            || args.Message != MaaMsg.Controller.Action.Succeeded)
+            return;
+
+        try
+        {
+            // Agent 直接操作控制器时没有节点点击回调；这里只读事件，不重入底层控制器。
+            var action = JObject.Parse(args.Details)["action"];
+            if (action?.Type == JTokenType.String)
+                _recoveryMonitor.RecordControllerAction(action.Value<string>()!, _recoveryClock.Elapsed);
+        }
+        catch (JsonException)
+        {
+            // 无法解析的回调不作为输入成功的证据。
+        }
+    }
 
     public void HandleCallBack(object? sender, MaaCallbackEventArgs args)
     {
@@ -4301,6 +4335,7 @@ public class MaaProcessor
 
             if (!connected)
             {
+                token.ThrowIfCancellationRequested();
                 _suppressConnectionAttemptErrorToast = previousSuppressConnectionAttemptErrorToast;
                 if (!tuple.Item2 && shouldRetry)
                     HandleConnectionFailureAsync(controllerType, token);
@@ -4646,7 +4681,7 @@ public class MaaProcessor
 
     #region 停止任务
 
-    private readonly Lock _stopLock = new();
+    private readonly TaskStopLifecycle _stopLifecycle = new();
 
     public void Stop(MFATask.MFATaskStatus status, bool finished = false, bool onlyStart = false,
         Action? action = null, bool queueCompleted = false)
@@ -4654,42 +4689,30 @@ public class MaaProcessor
         EnqueueCommand(() => StopInternal(status, finished, onlyStart, queueCompleted, action));
     }
 
-    private Task StopInternal(MFATask.MFATaskStatus status, bool finished, bool onlyStart,
+    private async Task StopInternal(MFATask.MFATaskStatus status, bool finished, bool onlyStart,
         bool queueCompleted, Action? action)
     {
         using var logScope = BeginInstanceLogScope("StopTask", "Worker");
-        ResetActionFailedCount();
-        ClearTaskbarProgress();
-        _taskQueueTotal = 0;
-
-        lock (_stopLock)
+        try
         {
-            LoggerHelper.Info("停止前状态：" + Status);
-            if (Status == MFATask.MFATaskStatus.STOPPING)
-                return Task.CompletedTask;
-            Status = MFATask.MFATaskStatus.STOPPING;
-            ViewModel?.SetAdbRecoverySelectionLock(false);
-            DispatcherHelper.PostOnMainThread(() =>
+            await _stopLifecycle.RunAsync(async () =>
             {
-                if (ViewModel != null) ViewModel.ToggleEnable = false;
-            });
-            try
-            {
+                ResetActionFailedCount();
+                ClearTaskbarProgress();
+                _taskQueueTotal = 0;
                 var isUpdateRelated = TaskQueue.Any(task => task.IsUpdateRelated);
                 ViewModel?.SetCurrentTaskName(string.Empty);
                 if (!ShouldProcessStop(finished))
                 {
-                    ToastHelper.Warn(LangKeys.NoTaskToStop.ToLocalization());
-
                     TaskQueue.Clear();
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 CancelOperations(status == MFATask.MFATaskStatus.STOPPED && !_agentStarted && _agentContexts.Count > 0);
 
                 TaskQueue.Clear();
 
-                ExecuteStopCore(finished, async () =>
+                await ExecuteStopCore(finished, async () =>
                 {
                     var stopResult = MaaJobStatus.Succeeded;
 
@@ -4714,23 +4737,35 @@ public class MaaProcessor
 
                     }
                     HandleStopResult(status, stopResult, onlyStart, queueCompleted, action, isUpdateRelated);
-                    DispatcherHelper.PostOnMainThread(() =>
-                    {
-                        if (ViewModel != null) ViewModel.ToggleEnable = true;
-                    });
                 });
-            }
-            catch (Exception ex)
+            }, stopping =>
             {
+                if (stopping)
+                {
+                    LoggerHelper.Info("停止前状态：" + Status);
+                    Status = MFATask.MFATaskStatus.STOPPING;
+                    ViewModel?.SetAdbRecoverySelectionLock(false);
+                }
+                else if (Status == MFATask.MFATaskStatus.STOPPING)
+                {
+                    Status = status == MFATask.MFATaskStatus.STOPPING
+                        ? MFATask.MFATaskStatus.STOPPED
+                        : status;
+                }
+
                 DispatcherHelper.PostOnMainThread(() =>
                 {
-                    if (ViewModel != null) ViewModel.ToggleEnable = true;
+                    if (ViewModel != null)
+                        ViewModel.ToggleEnable = !stopping;
+                    if (!stopping)
+                        Instances.RootViewModel.Idle = !Processors.Any(processor => processor.TaskQueue.Count > 0);
                 });
-                HandleStopException(ex);
-            }
+            });
         }
-
-        return Task.CompletedTask;
+        catch (Exception ex)
+        {
+            HandleStopException(ex);
+        }
     }
 
 
@@ -4752,16 +4787,14 @@ public class MaaProcessor
             || finished;
     }
 
-    private void ExecuteStopCore(bool finished, Action stopAction)
+    private Task ExecuteStopCore(bool finished, Func<Task> stopAction)
     {
-        TaskManager.RunTaskAsync(() =>
+        return TaskManager.RunTaskAsync(async () =>
         {
             if (!finished) DispatcherHelper.PostOnMainThread(() => AddLogByKey(LangKeys.Stopping, (IBrush?)null));
 
-            stopAction.Invoke();
-
-            DispatcherHelper.PostOnMainThread(() => Instances.RootViewModel.Idle = true);
-        }, null, "停止maafw任务");
+            await stopAction();
+        }, null, "停止maafw任务", catchException: false);
     }
 
     private MaaJobStatus AbortCurrentTasker()
