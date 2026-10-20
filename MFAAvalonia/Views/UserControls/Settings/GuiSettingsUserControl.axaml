@@ -19,23 +19,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent.Markup;assembly=FluentIcons.Avalonia.Fluent"
     xmlns:avalonia="clr-namespace:FluentIcons.Avalonia;assembly=FluentIcons.Avalonia"
-    xmlns:fluent1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent">
-    <UserControl.Resources>
-        <ContextMenu x:Key="ThemeColorContextMenu">
-            <Separator />
-            <MenuItem Click="Delete"
-                      Classes="DangerContextDelete"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}">
-                <MenuItem.Icon>
-                    <fluent1:FluentIcon
-                        Foreground="{DynamicResource SukiDangerColor}"
-                        Icon="Delete"
-                        IconSize="Size16"
-                        IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-        </ContextMenu>
-    </UserControl.Resources>
+    xmlns:fluent1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:appControls="clr-namespace:MFAAvalonia.Controls">
     <StackPanel>
         <StackPanel
             HorizontalAlignment="Center"
@@ -107,11 +92,23 @@
                         BorderBrush="Transparent"
                         BorderThickness="0"
                         Command="{Binding SelectThemeCommand}"
-                        ContextMenu="{StaticResource ThemeColorContextMenu}"
                         Margin="6"
                         Padding="0"
                         ToolTip.Tip="{Binding Theme.DisplayName}"
                         Width="84">
+                    <Button.ContextMenu>
+                        <appControls:LifecycleSafeContextMenu>
+                            <Separator />
+                            <MenuItem Click="Delete"
+                                      Classes="DangerContextDelete"
+                                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}">
+                                <MenuItem.Icon>
+                                    <fluent1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
+                                                        Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </appControls:LifecycleSafeContextMenu>
+                    </Button.ContextMenu>
                         <Grid HorizontalAlignment="Center"
                               Width="84">
                             <Border Background="{DynamicResource SukiBackground}"

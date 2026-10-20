@@ -48,7 +48,9 @@ public static class StrategyValidator
                 errors.Add(prefix + "的行动优先级必须完整包含奥义和炸弹。");
             if (actions.BombLevels == null || actions.BombLevels.Distinct().Count() != actions.BombLevels.Count || actions.BombLevels.Any(x => x < 1 || x > 3))
                 errors.Add(prefix + "的炸弹等级无效或重复。");
-            if (actions.NormalLink == null || actions.NormalLink.LongLinkThreshold != 7 || !IsPermutation(actions.NormalLink.ColorPriority, Enum.GetValues<GhoulColor>()))
+            if (actions.NormalLink == null || actions.NormalLink.LongLinkThreshold != 7 ||
+                !IsPermutation(actions.NormalLink.ColorPriority, Enum.GetValues<GhoulColor>()) ||
+                actions.NormalLink.ColorPriorityCount is < 0 or > 4)
                 errors.Add(prefix + "的连线颜色配置无效。");
             if (stage.Frenzy.ReservedColor is { } color && !Enum.IsDefined(color)) errors.Add(prefix + "的乱舞保留颜色无效。");
             if (actions.Ultimates == null || actions.Ultimates.Any(x => x == null) || !IsPermutation(actions.Ultimates.Where(x => x != null).Select(x => x.Slot), new[] { 1, 2, 3 }))
@@ -91,13 +93,13 @@ public static class StrategyValidator
         }
         if (condition is not ConditionPredicate predicate || !Enum.IsDefined(predicate.Metric))
         { errors.Add(prefix + "存在未知条件。"); return; }
-        if (predicate.Metric is ConditionMetric.UltimateReady or ConditionMetric.UltimateReleased)
+        if (predicate.Metric == ConditionMetric.UltimateReady)
         {
             if (predicate.Slots == null || predicate.Slots.Count == 0 || predicate.Slots.Distinct().Count() != predicate.Slots.Count || predicate.Slots.Any(x => x < 1 || x > 3))
                 errors.Add(prefix + "请选择有效的奥义位置。");
-            if (predicate.SlotMatch is not { } match || !Enum.IsDefined(match) || predicate.Expected == null)
-                errors.Add(prefix + "的奥义状态条件不完整。");
-            if (predicate.Metric == ConditionMetric.UltimateReady && ownerSlot != null && predicate.Slots?.Contains(ownerSlot.Value) == true)
+            if (predicate.SlotMatch != ConditionMatch.All || predicate.Expected == null)
+                errors.Add(prefix + "的奥义状态需指定所选位置全部满足；任一关系请使用条件组。");
+            if (ownerSlot != null && predicate.Slots?.Contains(ownerSlot.Value) == true)
                 errors.Add(prefix + "的自身就绪是内置条件，请只选择其他位置。");
             if (predicate.Value != null || predicate.Comparison != null) errors.Add(prefix + "的奥义状态不能包含数值比较。");
         }

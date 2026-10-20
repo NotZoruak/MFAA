@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
+             xmlns:appControls="clr-namespace:MFAAvalonia.Controls"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent.Markup;assembly=FluentIcons.Avalonia.Fluent"
              xmlns:helper="clr-namespace:MFAAvalonia.Helper"
@@ -48,7 +49,7 @@
                                         ClipToBounds="True"
                                         PointerPressed="OnCardPointerPressed">
                             <suki:GlassCard.ContextMenu>
-                                <ContextMenu>
+                                <appControls:LifecycleSafeContextMenu>
                                     <MenuItem Header="{markup:I18n {x:Static helper:LangKeys.StartTask}}"
                                               Command="{Binding StartTaskCommand}"
                                               IsVisible="{calcBinding:Binding 'IsConnected and !IsRunning'}">
@@ -113,7 +114,7 @@
                                                                 IconVariant="Regular" />
                                         </MenuItem.Icon>
                                     </MenuItem>
-                                </ContextMenu>
+                                </appControls:LifecycleSafeContextMenu>
                             </suki:GlassCard.ContextMenu>
                             <Grid RowDefinitions="*,Auto">
                                 <!-- Image Area -->

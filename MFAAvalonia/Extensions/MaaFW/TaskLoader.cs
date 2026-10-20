@@ -1,4 +1,5 @@
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.ViewModels.Other;
@@ -32,6 +33,10 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         ref bool firstTask,
         IList<DragItemViewModel>? oldDrags = null)
     {
+        StrategyOptionProvider.Refresh(
+            maaInterface,
+            Path.Combine(AppPaths.ConfigDirectory, "strategies"),
+            message => LoggerHelper.Warning(message));
         var instanceConfig = taskQueueViewModel.Processor.InstanceConfiguration;
 
         var currentTasks = instanceConfig.GetValue(ConfigurationKeys.CurrentTasks, new List<string>());
@@ -588,7 +593,12 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         try
         {
             var defaultIndex = io.Cases?.FindIndex(c => c.Name == io.DefaultCase) ?? -1;
-            if (defaultIndex != -1 && option.Index == null)
+            var restoredStrategyCase = StrategyOptionProvider.RestoreSelectedCase(io, option);
+            if (option.Name == StrategyOptionProvider.OptionName && !restoredStrategyCase)
+            {
+                option.Index = defaultIndex >= 0 ? defaultIndex : 0;
+            }
+            else if (defaultIndex != -1 && option.Index == null)
             {
                 option.Index = defaultIndex;
             }

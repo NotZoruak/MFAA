@@ -27,68 +27,11 @@
              xmlns:avalonia1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
              xmlns:other="clr-namespace:MFAAvalonia.ViewModels.Other"
              xmlns:dashboard="clr-namespace:MFAAvalonia.Views.UserControls.Dashboard"
-             xmlns:extensions="clr-namespace:MFAAvalonia.Extensions">
+             xmlns:extensions="clr-namespace:MFAAvalonia.Extensions"
+             xmlns:appControls="clr-namespace:MFAAvalonia.Controls">
     <Design.DataContext>
         <pages:TaskQueueViewModel />
     </Design.DataContext>
-    <UserControl.Resources>
-        <ContextMenu x:Key="TaskMenu"
-                     Opening="TaskMenu_OnOpening">
-            <MenuItem x:Name="TaskMenuRunSingle"
-                      Click="RunSingleTask"
-                      Header="{markup:I18n {x:Static helper:LangKeys.RunSingle}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="Play" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem x:Name="TaskMenuRunCheckedFromCurrent"
-                      Click="RunCheckedFromCurrent"
-                      Header="{markup:I18n {x:Static helper:LangKeys.RunCheckedFromCurrent}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="ArrowRight" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem x:Name="TaskMenuCopy"
-                      Click="CopyTask"
-                      InputGesture="Ctrl+C"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Copy}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem x:Name="TaskMenuPaste"
-                      Click="PasteTask"
-                      InputGesture="Ctrl+V"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Paste}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem x:Name="TaskMenuRemark"
-                      Click="EditTaskRemark"
-                      Header="{markup:I18n {x:Static helper:LangKeys.TaskRemarkMenu}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="CommentEdit" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem x:Name="TaskMenuDelete"
-                      Click="Delete"
-                      Classes="DangerContextDelete"
-                      InputGesture="Delete"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon
-                        Foreground="{DynamicResource SukiDangerColor}"
-                        Icon="Delete"
-                        IconSize="Size16"
-                        IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-        </ContextMenu>
-    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="Path.TaskRunSpinner">
             <Setter Property="RenderTransformOrigin" Value="50%,50%" />
@@ -1149,10 +1092,48 @@
                                       extensions:DragDropExtensions.LimitDragDrop="True"
                                       ColumnDefinitions="Auto,*,24"
                                       RowDefinitions="Auto,Auto"
-                                      ContextMenu="{StaticResource TaskMenu}"
                                       PointerPressed="TaskItem_OnPointerPressed"
                                       ContextRequested="TaskItem_OnContextRequested"
                                       x:Name="ListGrid">
+                                    <Grid.ContextMenu>
+                                        <appControls:LifecycleSafeContextMenu Opening="TaskMenu_OnOpening">
+                                            <MenuItem Click="RunSingleTask" Header="{markup:I18n {x:Static helper:LangKeys.RunSingle}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Icon="Play" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Click="RunCheckedFromCurrent" Header="{markup:I18n {x:Static helper:LangKeys.RunCheckedFromCurrent}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Icon="ArrowRight" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <Separator />
+                                            <MenuItem Click="CopyTask" InputGesture="Ctrl+C" Header="{markup:I18n {x:Static helper:LangKeys.Copy}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Click="PasteTask" InputGesture="Ctrl+V" Header="{markup:I18n {x:Static helper:LangKeys.Paste}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <Separator />
+                                            <MenuItem Click="EditTaskRemark" Header="{markup:I18n {x:Static helper:LangKeys.TaskRemarkMenu}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Icon="CommentEdit" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                            <Separator />
+                                            <MenuItem Click="Delete" Classes="DangerContextDelete" InputGesture="Delete"
+                                                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}">
+                                                <MenuItem.Icon>
+                                                    <avalonia1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
+                                                                          Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                                                </MenuItem.Icon>
+                                            </MenuItem>
+                                        </appControls:LifecycleSafeContextMenu>
+                                    </Grid.ContextMenu>
                                     <CheckBox IsThreeState="True"
                                               Grid.Column="0"
                                               Grid.RowSpan="2"

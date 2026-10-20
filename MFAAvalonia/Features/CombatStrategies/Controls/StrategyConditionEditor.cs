@@ -1,5 +1,9 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
+using Avalonia.Media;
 using System;
 using System.Linq;
 
@@ -9,6 +13,7 @@ public sealed class StrategyConditionEditor : UserControl
 {
     private readonly Action _changed;
     private readonly int? _ownerSlot;
+    private sealed record ConditionKind(ConditionMetric Metric, bool? Expected = null);
 
     public StrategyConditionEditor(ConditionGroup root, Action changed, int? ownerSlot = null)
     {
@@ -20,7 +25,7 @@ public sealed class StrategyConditionEditor : UserControl
     private Control BuildGroup(ConditionGroup group, Action? remove, int depth)
     {
         var children = new StackPanel { Spacing = 8 };
-        var mode = StrategyUi.Choice(StrategyUi.Matches, group.Match, value => { group.Match = value; _changed(); });
+        var mode = StrategyUi.Choice(StrategyUi.Matches, group.Match, value => { group.Match = value; _changed(); }, 130);
         mode.Name = "ConditionMatch";
         var addCondition = StrategyUi.Button("添加条件", () =>
         {
@@ -37,11 +42,33 @@ public sealed class StrategyConditionEditor : UserControl
         });
         addGroup.Name = "AddConditionGroup";
         addGroup.IsEnabled = depth < StrategyValidator.MaxConditionDepth - 2;
-        var header = StrategyUi.Row(mode, addCondition, addGroup);
-        if (remove != null) header.Children.Add(StrategyUi.Button("移除组", remove));
-        var body = StrategyUi.Column(header, children);
-        var card = StrategyUi.Card(body, "strategy-condition");
-        card.Margin = new Thickness(depth == 0 ? 0 : 8, 2, 0, 2);
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 6 };
+        header.Children.Add(StrategyUi.Row(mode, addCondition, addGroup));
+        if (remove != null)
+        {
+            var close = RemoveButton(remove, "移除条件组");
+            close.VerticalAlignment = VerticalAlignment.Top;
+            Grid.SetColumn(close, 1);
+            header.Children.Add(close);
+        }
+        var branch = new Border
+        {
+            Child = children,
+            BorderThickness = new Thickness(2, 0, 0, 0),
+            Padding = new Thickness(12, 0, 0, 0),
+            Margin = new Thickness(3, 2, 0, 0)
+        };
+        branch.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("SukiPrimaryColor25"));
+        var body = StrategyUi.Column(header, branch);
+        var card = new Border
+        {
+            Child = body,
+            Padding = new Thickness(10),
+            CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1)
+        };
+        card.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("SukiControlBorderBrush"));
+        card.Bind(Border.BackgroundProperty, new DynamicResourceExtension(depth % 2 == 0 ? "SukiCardBackground" : "SukiPrimaryColor5"));
         RefreshChildren();
         return card;
 
@@ -74,46 +101,47 @@ public sealed class StrategyConditionEditor : UserControl
         void Render()
         {
             host.Children.Clear();
-            var metric = StrategyUi.Choice(Metrics, predicate.Metric, value =>
+            var selected = new ConditionKind(predicate.Metric, predicate.Metric == ConditionMetric.UltimateReady ? predicate.Expected : null);
+            var metric = StrategyUi.Choice(Metrics, selected, value =>
             {
-                predicate.Metric = value;
+                var positions = predicate.Metric == ConditionMetric.UltimateReady && value.Metric == ConditionMetric.UltimateReady
+                    ? predicate.Slots?.ToList() : null;
+                predicate.Metric = value.Metric;
                 predicate.Comparison = null;
                 predicate.Value = null;
                 predicate.Slots = null;
                 predicate.SlotMatch = null;
                 predicate.Expected = null;
-                if (value is ConditionMetric.UltimateReady or ConditionMetric.UltimateReleased)
+                if (value.Metric == ConditionMetric.UltimateReady)
                 {
-                    predicate.Slots = [Enumerable.Range(1, 3).First(x => value != ConditionMetric.UltimateReady || x != _ownerSlot)];
+                    predicate.Slots = positions ?? [Enumerable.Range(1, 3).First(x => x != _ownerSlot)];
                     predicate.SlotMatch = ConditionMatch.All;
-                    predicate.Expected = true;
+                    predicate.Expected = value.Expected;
                 }
-                else if (value == ConditionMetric.FrenzyActive) predicate.Expected = true;
+                else if (value.Metric == ConditionMetric.FrenzyActive) predicate.Expected = true;
                 else { predicate.Comparison = ComparisonOperator.GreaterOrEqual; predicate.Value = 1; }
                 _changed();
                 Render();
             }, 180);
             metric.Name = "ConditionMetric";
             var row = StrategyUi.Row(metric);
-            if (predicate.Metric is ConditionMetric.UltimateReady or ConditionMetric.UltimateReleased)
+            if (predicate.Metric == ConditionMetric.UltimateReady)
             {
                 foreach (var slot in Enumerable.Range(1, 3))
                 {
-                    if (predicate.Metric == ConditionMetric.UltimateReady && slot == _ownerSlot) continue;
-                    row.Children.Add(StrategyUi.Check($"位置 {slot}", predicate.Slots?.Contains(slot) == true, selected =>
+                    if (slot == _ownerSlot) continue;
+                    var position = StrategyUi.Check($"位置 {slot}", predicate.Slots?.Contains(slot) == true, selected =>
                     {
                         predicate.Slots ??= [];
                         if (selected && !predicate.Slots.Contains(slot)) predicate.Slots.Add(slot);
                         if (!selected) predicate.Slots.Remove(slot);
                         predicate.Slots.Sort();
+                        predicate.SlotMatch = ConditionMatch.All;
                         _changed();
-                    }));
+                    });
+                    ToolTip.SetTip(position, "多选时，所选位置都需满足此状态；任一满足请使用条件组。");
+                    row.Children.Add(position);
                 }
-                row.Children.Add(StrategyUi.Choice(StrategyUi.Matches, predicate.SlotMatch ?? ConditionMatch.All, value => { predicate.SlotMatch = value; _changed(); }, 120));
-                var ready = predicate.Metric == ConditionMetric.UltimateReady;
-                row.Children.Add(StrategyUi.Choice(
-                    new[] { new EditorChoice<bool>(true, ready ? "已就绪" : "已释放"), new EditorChoice<bool>(false, ready ? "未就绪" : "未释放") },
-                    predicate.Expected ?? true, value => { predicate.Expected = value; _changed(); }, 100));
             }
             else if (predicate.Metric == ConditionMetric.FrenzyActive)
                 row.Children.Add(StrategyUi.Choice(
@@ -126,8 +154,14 @@ public sealed class StrategyConditionEditor : UserControl
                 var number = new NumericUpDown
                 {
                     Name = "ConditionValue", Value = predicate.Value, Minimum = 0,
-                    Maximum = percent ? 100 : 999999999999m, Increment = 1, Width = 150,
-                    FormatString = percent ? "0.##" : "0.##"
+                    Maximum = percent ? 100 : 999999999999m, Increment = 1,
+                    Width = 84,
+                    Height = 36, MinHeight = 36, MaxHeight = 36,
+                    Padding = new Thickness(8, 0, 4, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ShowButtonSpinner = false,
+                    FormatString = "0.##"
                 };
                 number.PropertyChanged += (_, e) =>
                 {
@@ -138,9 +172,25 @@ public sealed class StrategyConditionEditor : UserControl
                 row.Children.Add(number);
                 if (percent) row.Children.Add(StrategyUi.Text("%"));
             }
-            row.Children.Add(StrategyUi.Button("移除", remove));
+            row.Children.Add(RemoveButton(remove, "移除条件"));
             host.Children.Add(row);
         }
+    }
+
+    private static Button RemoveButton(Action remove, string description)
+    {
+        var button = StrategyUi.Button("×", remove);
+        button.Width = button.Height = 30;
+        button.MinWidth = button.MinHeight = 0;
+        button.Padding = new Thickness(0);
+        button.FontSize = 20;
+        button.FontWeight = FontWeight.Normal;
+        button.HorizontalContentAlignment = HorizontalAlignment.Center;
+        button.VerticalContentAlignment = VerticalAlignment.Center;
+        button.Classes.Add("BasicTight");
+        ToolTip.SetTip(button, description);
+        AutomationProperties.SetName(button, description);
+        return button;
     }
 
     private static ConditionPredicate NewPredicate() => new()
@@ -150,17 +200,15 @@ public sealed class StrategyConditionEditor : UserControl
         Value = 1
     };
 
-    private static readonly EditorChoice<ConditionMetric>[] Metrics =
+    private static readonly EditorChoice<ConditionKind>[] Metrics =
     [
-        new(ConditionMetric.BattleNormalLinks, "本场普通连线手数"),
-        new(ConditionMetric.StageNormalLinks, "当前阶段普通连线手数"),
-        new(ConditionMetric.EnemyHp, "敌方血量数值"),
-        new(ConditionMetric.AllyHp, "我方血量数值"),
-        new(ConditionMetric.EnemyHpPercent, "敌方血量百分比"),
-        new(ConditionMetric.AllyHpPercent, "我方血量百分比"),
-        new(ConditionMetric.UltimateReady, "其他位置奥义就绪"),
-        new(ConditionMetric.UltimateReleased, "位置奥义已释放"),
-        new(ConditionMetric.FrenzyActive, "乱舞状态")
+        new(new(ConditionMetric.BattleNormalLinks), "本场普通连线手数"),
+        new(new(ConditionMetric.StageNormalLinks), "当前阶段普通连线手数"),
+        new(new(ConditionMetric.EnemyHpPercent), "敌方血量百分比"),
+        new(new(ConditionMetric.AllyHpPercent), "我方血量百分比"),
+        new(new(ConditionMetric.UltimateReady, true), "奥义已就绪"),
+        new(new(ConditionMetric.UltimateReady, false), "奥义未就绪"),
+        new(new(ConditionMetric.FrenzyActive), "乱舞状态")
     ];
 
     private static readonly EditorChoice<ComparisonOperator>[] Comparisons =

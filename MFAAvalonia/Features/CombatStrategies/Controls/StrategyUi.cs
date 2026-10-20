@@ -39,7 +39,6 @@ internal static class StrategyUi
     public static CheckBox Check(string label, bool value, Action<bool> changed)
     {
         var box = new CheckBox { Content = label, IsChecked = value, VerticalAlignment = VerticalAlignment.Center };
-        box.Classes.Add("strategy-check");
         box.Bind(CheckBox.ForegroundProperty, new DynamicResourceExtension("SukiText"));
         box.PropertyChanged += (_, e) => { if (e.Property == ToggleButton.IsCheckedProperty) changed(box.IsChecked == true); };
         return box;
@@ -76,11 +75,22 @@ internal static class StrategyUi
         return panel;
     }
 
-    public static TextBlock Section(string title)
+    public static Control Section(string title)
     {
+        var marker = new Border { Width = 3, Height = 16, CornerRadius = new CornerRadius(2), VerticalAlignment = VerticalAlignment.Center };
+        marker.Bind(Border.BackgroundProperty, new DynamicResourceExtension("SukiPrimaryColor"));
         var text = Text(title, true);
-        text.Margin = new Thickness(0, 0, 0, 2);
-        return text;
+        text.FontSize = 15;
+        var heading = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("3,*"),
+            ColumnSpacing = 8,
+            Margin = new Thickness(0, 0, 0, 2)
+        };
+        heading.Children.Add(marker);
+        Grid.SetColumn(text, 1);
+        heading.Children.Add(text);
+        return heading;
     }
 
     public static Border Card(Control content, string className = "strategy-card")
@@ -105,10 +115,10 @@ internal static class StrategyUi
             Child = new TextBlock { Text = "⠿", FontSize = 22, VerticalAlignment = VerticalAlignment.Center },
             Padding = new Thickness(5), Focusable = true
         };
-        ((TextBlock)handle.Child).Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiText"));
+        handle.Classes.Add("strategy-drag-handle");
+        ((TextBlock)handle.Child).Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
         // 光标由平台创建，挂载到实际界面时再获取。
         handle.AttachedToVisualTree += (_, _) => handle.Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.SizeAll);
-        ToolTip.SetTip(handle, "拖动排序；聚焦后可用上下方向键移动");
         return handle;
     }
 }

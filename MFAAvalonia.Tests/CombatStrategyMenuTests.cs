@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Interactivity;
@@ -13,7 +14,20 @@ using Xunit;
 namespace MFAAvalonia.Tests;
 
 [CollectionDefinition("策略界面", DisableParallelization = true)]
-public sealed class CombatStrategyUiCollection { }
+public sealed class CombatStrategyUiCollection : ICollectionFixture<CombatStrategyUiFixture> { }
+
+public sealed class CombatStrategyUiFixture
+{
+    public CombatStrategyUiFixture()
+    {
+        // 主题图标和标准弹窗按钮依赖渲染服务，初始化后无需打开窗口。
+        AppBuilder.Configure<Application>()
+            .UseStandardRuntimePlatformSubsystem()
+            .UseWindowingSubsystem(() => { }, "测试")
+            .UseSkia()
+            .SetupWithoutStarting();
+    }
+}
 
 [Collection("策略界面")]
 public sealed class CombatStrategyMenuTests

@@ -6,7 +6,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MFAAvalonia.Views.UserControls;
 using System;
@@ -213,7 +212,6 @@ internal static class StrategyReorder
             container.Children.RemoveAt(controlIndex);
             container.Children.Insert(Math.Clamp(to, 0, container.Children.Count), row);
             container.UpdateLayout();
-            Dispatcher.UIThread.RunJobs();
             foreach (var (control, position) in before)
             {
                 var current = control.TranslatePoint(new Point(0, 0), container);
@@ -247,7 +245,7 @@ internal static class StrategyReorder
 
     private static Transitions CreateTransitions() =>
     [
-        new DoubleTransition { Property = TranslateTransform.XProperty, Duration = TimeSpan.FromMilliseconds(85), Easing = new SineEaseOut() },
-        new DoubleTransition { Property = TranslateTransform.YProperty, Duration = TimeSpan.FromMilliseconds(85), Easing = new SineEaseOut() }
+        new DoubleTransition { Property = TranslateTransform.XProperty, Duration = TimeSpan.FromMilliseconds(180), Easing = new SineEaseOut() },
+        new DoubleTransition { Property = TranslateTransform.YProperty, Duration = TimeSpan.FromMilliseconds(180), Easing = new SineEaseOut() }
     ];
 }

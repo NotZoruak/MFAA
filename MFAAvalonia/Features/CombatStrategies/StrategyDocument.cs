@@ -8,7 +8,7 @@ namespace MFAAvalonia.Features.CombatStrategies;
 public enum StrategyAction { Ultimate, Bomb }
 public enum GhoulColor { Red, Blue, Green, Yellow }
 public enum ConditionMatch { All, Any }
-public enum ConditionMetric { BattleNormalLinks, StageNormalLinks, EnemyHp, AllyHp, EnemyHpPercent, AllyHpPercent, UltimateReady, UltimateReleased, FrenzyActive }
+public enum ConditionMetric { BattleNormalLinks, StageNormalLinks, EnemyHpPercent, AllyHpPercent, UltimateReady, FrenzyActive }
 public enum ComparisonOperator { GreaterOrEqual, LessOrEqual, Greater, Less, Equal, NotEqual }
 
 public sealed class StrategyDocument
@@ -49,6 +49,7 @@ public sealed class NormalLinkSettings
     [JsonRequired] public bool PrioritizeColors { get; set; }
     [JsonRequired] public int LongLinkThreshold { get; set; } = 7;
     [JsonRequired] public List<GhoulColor> ColorPriority { get; set; } = [GhoulColor.Red, GhoulColor.Blue, GhoulColor.Green, GhoulColor.Yellow];
+    public int ColorPriorityCount { get; set; } = 4;
 }
 
 public sealed class FrenzySettings

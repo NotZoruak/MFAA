@@ -277,7 +277,7 @@ public partial class InstanceTabBar : UserControl
                 await vm.CloseInstanceCommand.ExecuteAsync(tab);
         };
 
-        var menu = new ContextMenu
+        var menu = new MFAAvalonia.Controls.LifecycleSafeContextMenu
         {
             Items =
             {

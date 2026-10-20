@@ -515,7 +515,7 @@ public partial class TaskQueueView : UserControl
         if (sender is not ContextMenu menu)
             return;
 
-        // ContextMenu 作为 StaticResource 会复用，DataContext 可能滞后。
+        // 每条任务项单独持有菜单，打开时以当前任务项刷新菜单状态。
         // 从 PlacementTarget 向上找真实的 DragItemViewModel。
         var currentItem = _lastTaskMenuItem
                           ?? ResolveTaskItemFromPlacementTarget(menu.PlacementTarget)

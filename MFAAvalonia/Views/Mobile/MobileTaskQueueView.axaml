@@ -14,21 +14,8 @@
              xmlns:other="clr-namespace:MFAAvalonia.ViewModels.Other"
              xmlns:suki="https://github.com/kikipoulet/SukiUI"
              xmlns:valueType="clr-namespace:MFAAvalonia.Helper.ValueType"
+             xmlns:appControls="clr-namespace:MFAAvalonia.Controls"
              mc:Ignorable="d" d:DesignWidth="390" d:DesignHeight="760">
-    <UserControl.Resources>
-        <ContextMenu x:Key="MobileTaskMenu" Opening="TaskMenu_OnOpening">
-            <MenuItem Click="RunSingleTask" Header="{markup:I18n {x:Static helper:LangKeys.RunSingle}}" />
-            <MenuItem Click="RunCheckedFromCurrent" Header="{markup:I18n {x:Static helper:LangKeys.RunCheckedFromCurrent}}" />
-            <Separator />
-            <MenuItem Click="CopyTask" Header="{markup:I18n {x:Static helper:LangKeys.Copy}}" />
-            <MenuItem Click="PasteTask" Header="{markup:I18n {x:Static helper:LangKeys.Paste}}" />
-            <Separator />
-            <MenuItem Click="EditTaskRemark" Header="{markup:I18n {x:Static helper:LangKeys.TaskRemarkMenu}}" />
-            <Separator />
-            <MenuItem Click="DeleteTask" Classes="DangerContextDelete"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
-        </ContextMenu>
-    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="Button.MobilePageTab">
             <Setter Property="Background" Value="Transparent" />
@@ -249,8 +236,21 @@
                         <Border MinHeight="52" Padding="10,6" Margin="0,0,0,6" CornerRadius="6"
                                 Background="{DynamicResource SukiCardBackground}"
                                 BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="1"
-                                ContextMenu="{StaticResource MobileTaskMenu}"
                                 ContextRequested="TaskItem_OnContextRequested">
+                            <Border.ContextMenu>
+                                <appControls:LifecycleSafeContextMenu Opening="TaskMenu_OnOpening">
+                                    <MenuItem Click="RunSingleTask" Header="{markup:I18n {x:Static helper:LangKeys.RunSingle}}" />
+                                    <MenuItem Click="RunCheckedFromCurrent" Header="{markup:I18n {x:Static helper:LangKeys.RunCheckedFromCurrent}}" />
+                                    <Separator />
+                                    <MenuItem Click="CopyTask" Header="{markup:I18n {x:Static helper:LangKeys.Copy}}" />
+                                    <MenuItem Click="PasteTask" Header="{markup:I18n {x:Static helper:LangKeys.Paste}}" />
+                                    <Separator />
+                                    <MenuItem Click="EditTaskRemark" Header="{markup:I18n {x:Static helper:LangKeys.TaskRemarkMenu}}" />
+                                    <Separator />
+                                    <MenuItem Click="DeleteTask" Classes="DangerContextDelete"
+                                              Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
+                                </appControls:LifecycleSafeContextMenu>
+                            </Border.ContextMenu>
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,22">
                                 <CheckBox IsThreeState="True" MinWidth="40"
                                           IsEnabled="{Binding !IsResourceOptionItem}"

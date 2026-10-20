@@ -30,8 +30,8 @@ public sealed class CombatStrategyStoreTests : IDisposable
                     Match = ConditionMatch.Any,
                     Children =
                     [
-                        new ConditionPredicate { Metric = ConditionMetric.UltimateReleased, Slots = [1], SlotMatch = ConditionMatch.All, Expected = true },
-                        new ConditionPredicate { Metric = ConditionMetric.UltimateReleased, Slots = [2], SlotMatch = ConditionMatch.All, Expected = true }
+                        new ConditionPredicate { Metric = ConditionMetric.UltimateReady, Slots = [1], SlotMatch = ConditionMatch.All, Expected = true },
+                        new ConditionPredicate { Metric = ConditionMetric.UltimateReady, Slots = [2], SlotMatch = ConditionMatch.All, Expected = true }
                     ]
                 }
             ]
@@ -157,13 +157,13 @@ public sealed class CombatStrategyStoreTests : IDisposable
         var original = StrategyDefaults.CreateEditable("复制来源");
         original.Stages[0].Actions.Ultimates[0].Condition = new ConditionGroup
         {
-            Children = [new ConditionPredicate { Metric = ConditionMetric.EnemyHp, Comparison = ComparisonOperator.LessOrEqual, Value = 10000 }]
+            Children = [new ConditionPredicate { Metric = ConditionMetric.EnemyHpPercent, Comparison = ComparisonOperator.LessOrEqual, Value = 50 }]
         };
         var clone = StrategyJson.Clone(original);
         var clonedGroup = Assert.IsType<ConditionGroup>(clone.Stages[0].Actions.Ultimates[0].Condition);
-        Assert.IsType<ConditionPredicate>(clonedGroup.Children[0]).Value = 2000;
+        Assert.IsType<ConditionPredicate>(clonedGroup.Children[0]).Value = 20;
         var originalGroup = Assert.IsType<ConditionGroup>(original.Stages[0].Actions.Ultimates[0].Condition);
-        Assert.Equal(10000, Assert.IsType<ConditionPredicate>(originalGroup.Children[0]).Value);
+        Assert.Equal(50, Assert.IsType<ConditionPredicate>(originalGroup.Children[0]).Value);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class CombatStrategyStoreTests : IDisposable
         var strategy = StrategyDefaults.CreateEditable("错误根节点");
         strategy.Stages[0].Actions.Ultimates[0].Condition = new ConditionPredicate
         {
-            Metric = ConditionMetric.EnemyHp, Comparison = ComparisonOperator.LessOrEqual, Value = 10000
+            Metric = ConditionMetric.EnemyHpPercent, Comparison = ComparisonOperator.LessOrEqual, Value = 50
         };
         Assert.NotEmpty(StrategyValidator.Validate(strategy));
     }

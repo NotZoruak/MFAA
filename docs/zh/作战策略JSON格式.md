@@ -40,15 +40,15 @@
 | --- | --- | --- |
 | `battle_normal_links` | 本场成功普通连线手数 | `comparison`、`value` |
 | `stage_normal_links` | 本次进入阶段后的成功普通连线手数 | `comparison`、`value` |
-| `enemy_hp`、`ally_hp` | 敌我血量数值 | `comparison`、`value` |
 | `enemy_hp_percent`、`ally_hp_percent` | 敌我血量百分比，0 至 100 | `comparison`、`value` |
 | `ultimate_ready` | 指定位置是否就绪 | `slots`、`slot_match`、`expected` |
-| `ultimate_released` | 指定位置在当前阶段是否已释放 | `slots`、`slot_match`、`expected` |
 | `frenzy_active` | 是否处于乱舞 | `expected` |
 
 比较为 `greater_or_equal`、`less_or_equal`、`greater`、`less`、`equal`、`not_equal`。数值非负，手数为整数。
 
-`slots` 至少一个位置且不重复，`slot_match` 为 `all/any`。先逐位置与 `expected` 比较，再合并；`any` 加 `expected: false` 表示至少一个位置未达到该状态。自身就绪不得写入本位置的奥义前置。
+奥义条件仅提供“奥义已就绪”和“奥义未就绪”，均使用 `ultimate_ready`，分别对应 `expected: true/false`。`slots` 可多选，至少一个位置且不重复；`slot_match` 固定为 `all`，所选位置必须全部达到该状态。“任一满足”通过条件组的 `match: any` 组合多条条件实现。自身就绪不得写入本位置的奥义前置。
+
+血量只填写 0 至 100 的百分比，不提供绝对数值。已移除 `enemy_hp`、`ally_hp` 和 `ultimate_released`，不做旧文件转换或兼容。
 
 未知数据取反仍是未知，不能因此满足。血量百分比须有可靠的当前与最大血量。
 
@@ -56,7 +56,7 @@
 
 `transitions` 每条为 `id`、`target_stage_id`、非空条件组 `condition`。按数组顺序检查，取第一条满足的转变，再检查目标阶段行动。任意现有阶段都可为目标。
 
-执行端须防止没有新观察或行动的转变循环；每次执行一步并确认新状态后重判。只计成功普通连线，炸弹、奥义、乱舞连线不计。进入阶段时重置阶段手数和阶段已释放记录，本场手数保留。运行记录与编辑折叠状态不落盘。
+执行端须防止没有新观察或行动的转变循环；每次执行一步并确认新状态后重判。只计成功普通连线，炸弹、奥义、乱舞连线不计。进入阶段时重置阶段手数，本场手数保留。运行记录与编辑折叠状态不落盘。
 
 ## 保存与兼容
 

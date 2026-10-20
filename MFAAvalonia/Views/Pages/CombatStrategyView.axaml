@@ -1,36 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:content="clr-namespace:SukiUI.Content;assembly=SukiUI"
+             xmlns:appControls="clr-namespace:MFAAvalonia.Controls"
              xmlns:avalonia1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
              x:Class="MFAAvalonia.Views.Pages.CombatStrategyView"
              x:CompileBindings="False">
-    <UserControl.Resources>
-        <ContextMenu x:Key="StrategyMenu" Opening="OnStrategyMenuOpening">
-            <MenuItem Header="复制" Click="OnCopyStrategy">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Header="粘贴" Click="OnPasteStrategy">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem Header="重命名" Click="OnRenameStrategy">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Icon="NotepadEdit" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator />
-            <MenuItem Header="删除" Classes="DangerContextDelete" Click="OnDeleteStrategyFromMenu">
-                <MenuItem.Icon>
-                    <avalonia1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
-                                          Icon="Delete" IconSize="Size16" IconVariant="Regular" />
-                </MenuItem.Icon>
-            </MenuItem>
-        </ContextMenu>
-    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="Border.strategy-card">
             <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
@@ -157,8 +131,34 @@
                 <ListBox Grid.Row="2" x:Name="StrategyList" SelectionChanged="OnStrategySelected">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Padding="8,6" CornerRadius="6" Background="Transparent"
-                                    ContextMenu="{StaticResource StrategyMenu}">
+                            <Border Padding="8,6" CornerRadius="6" Background="Transparent">
+                                <Border.ContextMenu>
+                                    <appControls:LifecycleSafeContextMenu Opening="OnStrategyMenuOpening">
+                                        <MenuItem Header="复制" Click="OnCopyStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="粘贴" Click="OnPasteStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="重命名" Click="OnRenameStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="NotepadEdit" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="删除" Classes="DangerContextDelete" Click="OnDeleteStrategyFromMenu">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
+                                                                      Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </appControls:LifecycleSafeContextMenu>
+                                </Border.ContextMenu>
                                 <TextBlock Text="{Binding Name}" FontSize="14" />
                             </Border>
                         </DataTemplate>
@@ -181,7 +181,8 @@
                 </StackPanel>
             </ScrollViewer>
             <Border Grid.Row="1" BorderBrush="{DynamicResource SukiControlBorderBrush}"
-                    BorderThickness="0,1,0,0" Padding="8,10,8,4" Margin="0,8,8,0">
+                    BorderThickness="0,1,0,0" Background="{DynamicResource SukiCardBackground}"
+                    Padding="8,14,8,10" Margin="-6,8,0,0">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                         <Button x:Name="SaveStrategy" Classes="BasicTight TaskQueueBasicTight"
@@ -214,5 +215,7 @@
                 </Grid>
             </Border>
         </Grid>
+        <Border Grid.Column="1" Width="1" HorizontalAlignment="Center"
+                Background="{DynamicResource SukiControlBorderBrush}" />
     </Grid>
 </UserControl>

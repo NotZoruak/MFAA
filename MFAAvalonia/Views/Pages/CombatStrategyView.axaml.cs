@@ -128,9 +128,11 @@ public partial class CombatStrategyView : UserControl
 
     private void OnStrategyContextRequested(object? sender, ContextRequestedEventArgs e)
     {
-        var strategy = (e.Source as Control)?.GetSelfAndVisualAncestors()
-            .OfType<Control>().Select(x => x.DataContext).OfType<StrategySummary>().FirstOrDefault();
-        if (strategy == null || Resources["StrategyMenu"] is not ContextMenu menu)
+        var sourceControls = (e.Source as Control)?.GetSelfAndVisualAncestors()
+            .OfType<Control>().ToList();
+        var strategy = sourceControls?.Select(x => x.DataContext).OfType<StrategySummary>().FirstOrDefault();
+        var menu = sourceControls?.Select(x => x.ContextMenu).OfType<ContextMenu>().FirstOrDefault();
+        if (strategy == null || menu == null)
             return;
 
         _menuStrategy = strategy;

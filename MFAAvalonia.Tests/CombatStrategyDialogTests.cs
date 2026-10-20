@@ -37,9 +37,14 @@ public sealed class CombatStrategyDialogTests
         {
             if (name != null) Assert.IsType<TextBox>(host.Content).Text = name;
             if (action == null) return Task.FromResult<object?>(null);
-            var button = host.ActionButtonsSource!.Single(x => x.Content is StackPanel panel
-                ? panel.Children.OfType<TextBlock>().Any(text => text.Text == action)
-                : Equals(x.Content, action));
+            var expected = action switch
+            {
+                "是" => SukiMessageBoxResult.Yes,
+                "否" => SukiMessageBoxResult.No,
+                "确定" => SukiMessageBoxResult.OK,
+                _ => SukiMessageBoxResult.Cancel
+            };
+            var button = host.ActionButtonsSource!.Single(x => Equals(x.Tag, expected));
             // 弹窗库会原样返回标准结果，自定义标签则返回按钮本身。
             var result = Assert.IsType<SukiMessageBoxResult>(button.Tag);
             return Task.FromResult<object?>(result);

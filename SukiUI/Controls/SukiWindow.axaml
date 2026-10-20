@@ -146,9 +146,9 @@
                                         <suki:GlassCard Name="AlternativeGlassMenuBackground"
                                                         Margin="12,3,10,3"
                                                         CornerRadius="13" />
-                                        <Menu Name="PART_Menu"
-                                              IsEnabled="{TemplateBinding IsMenuVisible}"
-                                              ItemsSource="{TemplateBinding MenuItems}" />
+                                        <suki:LifecycleSafeMenu Name="PART_Menu"
+                                                                IsEnabled="{TemplateBinding IsMenuVisible}"
+                                                                ItemsSource="{TemplateBinding MenuItems}" />
                                     </Panel>
                                     <Border Name="PART_BottomBorder" BorderBrush="{DynamicResource SukiBorderBrush}" />
                                 </StackPanel>

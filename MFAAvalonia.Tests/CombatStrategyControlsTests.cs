@@ -27,7 +27,8 @@ public sealed class CombatStrategyControlsTests
     public void DragDrop_AccountsForRemovedSourceRow(int from, double y, int expected)
     {
         var reorder = typeof(StrategyStageCard).Assembly.GetType("MFAAvalonia.Features.CombatStrategies.Controls.StrategyReorder")!;
-        var calculate = reorder.GetMethod("CalculateDropIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var calculate = reorder.GetMethod("CalculateDropIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
+            null, [typeof(System.Collections.Generic.IReadOnlyList<Avalonia.Rect>), typeof(int), typeof(double)], null)!;
         Avalonia.Rect[] rows = [new(0, 0, 200, 100), new(0, 110, 200, 100), new(0, 220, 200, 100)];
         Assert.Equal(expected, calculate.Invoke(null, [rows, from, y]));
     }
@@ -84,7 +85,7 @@ public sealed class CombatStrategyControlsTests
         var document = StrategyDefaults.CreateEditable("条件契约");
         document.Stages[0].Actions.Ultimates[0].Condition = new ConditionGroup
         {
-            Children = [new ConditionPredicate { Metric = ConditionMetric.EnemyHp, Comparison = ComparisonOperator.LessOrEqual, Value = 10000 }]
+            Children = [new ConditionPredicate { Metric = ConditionMetric.EnemyHpPercent, Comparison = ComparisonOperator.LessOrEqual, Value = 50 }]
         };
         using var json = JsonDocument.Parse(StrategyJson.Serialize(document));
         var condition = json.RootElement.GetProperty("stages")[0].GetProperty("actions").GetProperty("ultimates")[0].GetProperty("condition");
