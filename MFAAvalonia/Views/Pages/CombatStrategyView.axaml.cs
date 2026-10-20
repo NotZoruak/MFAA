@@ -50,7 +50,7 @@ public partial class CombatStrategyView : UserControl
             var card = new StrategyStageCard(Session, stage, ShowError, StrategyDialogs.RenameAsync);
             card.IsExpanded = same && expanded.TryGetValue(stage.Id, out var open) ? open : same || StageCards.Children.Count == 0;
             StageCards.Children.Add(card);
-            StrategyReorder.Attach(card.DragHandle, card, StageCards, Session.Current.Stages, stage, Session.StructuralChange);
+            StrategyReorder.Attach(card.DragHandle, card, StageCards, Session.Current.Stages, stage, Session.MarkDirty);
         }
         if (!same) StageScroll.Offset = default;
         _renderedStrategyId = Session.Current.Id;

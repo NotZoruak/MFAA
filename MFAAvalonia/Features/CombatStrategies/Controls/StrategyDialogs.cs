@@ -54,8 +54,9 @@ internal static class StrategyDialogs
     {
         var result = await showDialog(new SukiMessageBoxHost
         {
-            Content = $"确定删除策略“{name}”吗？",
-            ActionButtonsSource = [Action("删除", SukiMessageBoxResult.Yes), Action("取消", SukiMessageBoxResult.Cancel, true)]
+            Content = $"确定删除策略“{name}”吗？选择“是”删除，选择“否”保留。",
+            ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
+            IconPreset = SukiMessageBoxIcons.Warning
         }, new SukiMessageBoxOptions { Title = "删除策略" });
         return result is SukiMessageBoxResult.Yes;
     }

@@ -1,15 +1,34 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:content="clr-namespace:SukiUI.Content;assembly=SukiUI"
+             xmlns:avalonia1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
              x:Class="MFAAvalonia.Views.Pages.CombatStrategyView"
              x:CompileBindings="False">
     <UserControl.Resources>
         <ContextMenu x:Key="StrategyMenu" Opening="OnStrategyMenuOpening">
-            <MenuItem Header="复制" Click="OnCopyStrategy" />
-            <MenuItem Header="粘贴" Click="OnPasteStrategy" />
+            <MenuItem Header="复制" Click="OnCopyStrategy">
+                <MenuItem.Icon>
+                    <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="粘贴" Click="OnPasteStrategy">
+                <MenuItem.Icon>
+                    <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
+                </MenuItem.Icon>
+            </MenuItem>
             <Separator />
-            <MenuItem Header="重命名" Click="OnRenameStrategy" />
-            <MenuItem Header="删除" Classes="DangerContextDelete" Click="OnDeleteStrategyFromMenu" />
+            <MenuItem Header="重命名" Click="OnRenameStrategy">
+                <MenuItem.Icon>
+                    <avalonia1:FluentIcon Icon="NotepadEdit" IconSize="Size16" IconVariant="Regular" />
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator />
+            <MenuItem Header="删除" Classes="DangerContextDelete" Click="OnDeleteStrategyFromMenu">
+                <MenuItem.Icon>
+                    <avalonia1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
+                                          Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                </MenuItem.Icon>
+            </MenuItem>
         </ContextMenu>
     </UserControl.Resources>
     <UserControl.Styles>
@@ -19,6 +38,11 @@
             <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="Border.strategy-condition">
+            <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.strategy-section">
             <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />

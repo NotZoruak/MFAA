@@ -14,8 +14,8 @@ namespace MFAAvalonia.Tests;
 public sealed class CombatStrategyDialogTests
 {
     [Theory]
-    [InlineData("删除", true)]
-    [InlineData("取消", false)]
+    [InlineData("是", true)]
+    [InlineData("否", false)]
     [InlineData(null, false)]
     public async Task DeleteConfirmation_UsesMessageBoxResult(string? action, bool expected)
     {
@@ -37,7 +37,9 @@ public sealed class CombatStrategyDialogTests
         {
             if (name != null) Assert.IsType<TextBox>(host.Content).Text = name;
             if (action == null) return Task.FromResult<object?>(null);
-            var button = host.ActionButtonsSource!.Single(x => Equals(x.Content, action));
+            var button = host.ActionButtonsSource!.Single(x => x.Content is StackPanel panel
+                ? panel.Children.OfType<TextBlock>().Any(text => text.Text == action)
+                : Equals(x.Content, action));
             // 弹窗库会原样返回标准结果，自定义标签则返回按钮本身。
             var result = Assert.IsType<SukiMessageBoxResult>(button.Tag);
             return Task.FromResult<object?>(result);

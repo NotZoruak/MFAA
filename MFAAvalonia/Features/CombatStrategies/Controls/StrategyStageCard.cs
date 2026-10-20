@@ -45,8 +45,7 @@ public sealed class StrategyStageCard : UserControl
         _body.IsEnabled = !session.IsReadOnly;
         _body.Margin = new Thickness(8, 2, 8, 6);
         AddSection("行动优先级", BuildPriority());
-        _body.Children.Add(StrategyUi.Text("连线固定最后；普通操作与乱舞共用此顺序。"));
-        var bombs = StrategyUi.Row();
+        var bombs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
         foreach (var level in new[] { 1, 2, 3 })
             bombs.Children.Add(StrategyUi.Check($"{level} 级", stage.Actions.BombLevels.Contains(level), value =>
             {
@@ -63,23 +62,58 @@ public sealed class StrategyStageCard : UserControl
         IsExpanded = true;
     }
 
-    private void AddSection(string name, Control content) { _body.Children.Add(StrategyUi.Section(name)); _body.Children.Add(content); }
+    private void AddSection(string name, Control content)
+    {
+        var section = StrategyUi.Card(StrategyUi.Column(StrategyUi.Section(name), content), "strategy-section");
+        section.CornerRadius = new CornerRadius(8);
+        section.Padding = new Thickness(12);
+        _body.Children.Add(section);
+    }
 
     private Control BuildPriority()
     {
-        var list = new StackPanel { Spacing = 4 };
-        Render(); return list;
-        void Render()
+        CheckBox? bombFirst = null;
+        CheckBox? ultimateFirst = null;
+        var syncing = false;
+        var choices = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
+
+        void Sync()
         {
-            list.Children.Clear();
-            foreach (var action in _stage.Actions.Priority)
-            {
-                var handle = StrategyUi.DragHandle();
-                var row = StrategyUi.Row(handle, StrategyUi.Text(action == StrategyAction.Ultimate ? "使用奥义" : "使用炸弹"));
-                list.Children.Add(row);
-                StrategyReorder.Attach(handle, row, list, _stage.Actions.Priority, action, () => { _session.MarkDirty(); Render(); });
-            }
+            if (bombFirst == null || ultimateFirst == null) return;
+            syncing = true;
+            var selected = _stage.Actions.Priority.FirstOrDefault();
+            bombFirst.IsChecked = selected == StrategyAction.Bomb;
+            ultimateFirst.IsChecked = selected == StrategyAction.Ultimate;
+            syncing = false;
         }
+
+        void Select(StrategyAction action, bool isChecked)
+        {
+            if (syncing) return;
+            var selected = _stage.Actions.Priority.FirstOrDefault();
+            if (!isChecked)
+            {
+                if (selected == action) Sync();
+                return;
+            }
+
+            if (selected != action)
+            {
+                _stage.Actions.Priority.Clear();
+                _stage.Actions.Priority.Add(action);
+                _stage.Actions.Priority.Add(action == StrategyAction.Bomb ? StrategyAction.Ultimate : StrategyAction.Bomb);
+                _session.MarkDirty();
+            }
+            Sync();
+        }
+
+        bombFirst = StrategyUi.Check("先使用炸弹", _stage.Actions.Priority.FirstOrDefault() == StrategyAction.Bomb,
+            value => Select(StrategyAction.Bomb, value));
+        ultimateFirst = StrategyUi.Check("先使用奥义", _stage.Actions.Priority.FirstOrDefault() == StrategyAction.Ultimate,
+            value => Select(StrategyAction.Ultimate, value));
+        choices.Children.Add(bombFirst);
+        choices.Children.Add(ultimateFirst);
+        return StrategyUi.Column(choices, StrategyUi.Text("连线固定最后；普通操作与乱舞共用此顺序。", muted: true));
     }
 
     private Control BuildUltimates()
@@ -98,7 +132,7 @@ public sealed class StrategyStageCard : UserControl
                 var toggle = StrategyUi.Button("前置条件", () => { details.IsVisible = !details.IsVisible; if (details.IsVisible) _openSlots.Add(ultimate.Slot); else _openSlots.Remove(ultimate.Slot); });
                 var row = StrategyUi.Column(StrategyUi.Row(handle, StrategyUi.Check($"位置 {ultimate.Slot}", ultimate.Enabled, value => { ultimate.Enabled = value; _session.MarkDirty(); }), toggle), details);
                 list.Children.Add(row);
-                StrategyReorder.Attach(handle, row, list, _stage.Actions.Ultimates, ultimate, () => { _session.MarkDirty(); Render(); });
+                StrategyReorder.Attach(handle, row, list, _stage.Actions.Ultimates, ultimate, _session.MarkDirty);
             }
         }
     }
@@ -116,7 +150,7 @@ public sealed class StrategyStageCard : UserControl
                 var handle = StrategyUi.DragHandle();
                 var row = StrategyUi.Row(handle, StrategyUi.Text(StrategyUi.ColorName(color)));
                 colors.Children.Add(row);
-                StrategyReorder.Attach(handle, row, colors, _stage.Actions.NormalLink.ColorPriority, color, () => { _session.MarkDirty(); Render(); });
+                StrategyReorder.Attach(handle, row, colors, _stage.Actions.NormalLink.ColorPriority, color, _session.MarkDirty);
             }
         }
     }
@@ -151,7 +185,7 @@ public sealed class StrategyStageCard : UserControl
                 var remove = StrategyUi.Button("删除规则", () => { _stage.Transitions.Remove(rule); _session.MarkDirty(); Render(); });
                 var row = StrategyUi.Card(StrategyUi.Column(StrategyUi.Row(handle, StrategyUi.Text("转到"), target, edit, remove), details), "strategy-condition");
                 list.Children.Add(row);
-                StrategyReorder.Attach(handle, row, list, _stage.Transitions, rule, () => { _session.MarkDirty(); Render(); });
+                StrategyReorder.Attach(handle, row, list, _stage.Transitions, rule, _session.MarkDirty);
             }
         }
     }
