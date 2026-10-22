@@ -57,6 +57,7 @@ public sealed class FrenzySettings
     [JsonRequired] public bool AllowUltimates { get; set; } = true;
     [JsonRequired] public bool AllowBombs { get; set; } = true;
     public GhoulColor? ReservedColor { get; set; }
+    public bool ContinueOnUnknownColor { get; set; }
 }
 
 public sealed class StageTransition

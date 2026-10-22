@@ -30,7 +30,7 @@
 - `normal_link.color_priority`：`red`、`blue`、`green`、`yellow` 的完整排列。
 - `normal_link.long_link_threshold`：版本 1 固定为 `7`；有达标候选时仅在达标颜色中排序，否则在全部候选中排序。
 
-`frenzy.allow_ultimates`、`allow_bombs` 为额外许可，开启后仍受本阶段勾选、顺序和条件限制。`reserved_color` 省略表示不留色，有值时仅一种颜色。
+`frenzy.allow_ultimates`、`allow_bombs` 为额外许可，开启后仍受本阶段勾选、顺序和条件限制。`reserved_color` 省略表示不留色，有值时仅一种颜色。未设置 `reserved_color` 时不检查起点颜色，任何起点都直接扫动；设置保留色后，才由 `continue_on_unknown_color` 控制起点颜色无法识别时的处理：省略或 `false` 表示原地松手，`true` 表示继续扫动。识别为保留色时始终原地松手。
 
 ## 条件树
 

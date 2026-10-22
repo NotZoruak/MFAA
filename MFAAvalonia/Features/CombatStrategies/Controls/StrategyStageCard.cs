@@ -376,6 +376,8 @@ public sealed class StrategyStageCard : UserControl
         color.MaxWidth = 160;
         color.HorizontalAlignment = HorizontalAlignment.Left;
         color.IsVisible = _stage.Frenzy.ReservedColor != null;
+        var continueOnUnknownColor = StrategyUi.Check("起点颜色无法识别时继续扫动", _stage.Frenzy.ContinueOnUnknownColor, value => { _stage.Frenzy.ContinueOnUnknownColor = value; _session.MarkDirty(); });
+        continueOnUnknownColor.IsVisible = _stage.Frenzy.ReservedColor != null;
         var reservedColor = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -383,14 +385,16 @@ public sealed class StrategyStageCard : UserControl
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                StrategyUi.Check("保留指定颜色", _stage.Frenzy.ReservedColor != null, value => { _stage.Frenzy.ReservedColor = value ? selected : null; color.IsVisible = value; _session.MarkDirty(); }),
+                StrategyUi.Check("保留指定颜色", _stage.Frenzy.ReservedColor != null, value => { _stage.Frenzy.ReservedColor = value ? selected : null; _stage.Frenzy.ContinueOnUnknownColor = value && _stage.Frenzy.ContinueOnUnknownColor; color.IsVisible = value; continueOnUnknownColor.IsVisible = value; _session.MarkDirty(); }),
                 color
             }
         };
-        return StrategyUi.Row(
-            StrategyUi.Check("乱舞期间使用奥义", _stage.Frenzy.AllowUltimates, value => { _stage.Frenzy.AllowUltimates = value; _session.MarkDirty(); }),
-            StrategyUi.Check("乱舞期间使用炸弹", _stage.Frenzy.AllowBombs, value => { _stage.Frenzy.AllowBombs = value; _session.MarkDirty(); }),
-            reservedColor);
+        return StrategyUi.Column(
+            StrategyUi.Row(
+                StrategyUi.Check("乱舞期间使用奥义", _stage.Frenzy.AllowUltimates, value => { _stage.Frenzy.AllowUltimates = value; _session.MarkDirty(); }),
+                StrategyUi.Check("乱舞期间使用炸弹", _stage.Frenzy.AllowBombs, value => { _stage.Frenzy.AllowBombs = value; _session.MarkDirty(); }),
+                reservedColor),
+            StrategyUi.Row(continueOnUnknownColor));
     }
 
     private Control BuildTransitions()
