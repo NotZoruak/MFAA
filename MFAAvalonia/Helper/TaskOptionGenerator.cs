@@ -13,6 +13,7 @@ using Avalonia.Xaml.Interactivity;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls.Settings;
@@ -777,6 +778,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 : comboBox.SelectedIndex;
 
             option.Index = resolvedIndex;
+            StrategyOptionProvider.RememberSelectedCase(option, selectedCase?.Name);
             UpdateSubOptions(resolvedIndex);
             saveConfigurationAction();
         };
