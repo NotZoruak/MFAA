@@ -41,7 +41,7 @@ public class CheckBoxExtensions
     }
     private static void HandlePointerPressed(object sender, PointerPressedEventArgs e)
     {
-        if (sender is CheckBox checkBox)
+        if (sender is CheckBox { IsEffectivelyEnabled: true } checkBox)
         {
             if (e.GetCurrentPoint(TopLevel.GetTopLevel(checkBox)).Properties.IsRightButtonPressed)
             {
