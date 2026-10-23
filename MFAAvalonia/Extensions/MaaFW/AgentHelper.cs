@@ -941,6 +941,8 @@ public static class AgentHelper
             outData = outData[1..];
         }
 
+        processor.RecordResidentBattleOutcomeFromResourceLog(outData);
+
         DispatcherHelper.PostOnMainThread(() =>
         {
             if (MaaProcessor.CheckShouldLog(outData))

@@ -1047,6 +1047,9 @@
     <data name="TaskRoundComplete" xml:space="preserve">
         <value>任务完成: {0} 进度 {1}/{2}</value>
     </data>
+    <data name="ResidentBattleResultSummary" xml:space="preserve">
+        <value>常驻作战结果：胜利 {0} 场，失败 {1} 场</value>
+    </data>
     <data name="TaskStopped" xml:space="preserve">
         <value>任务已中止</value>
     </data>

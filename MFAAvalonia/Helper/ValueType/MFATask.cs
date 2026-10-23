@@ -45,6 +45,28 @@ public partial class MFATask : ObservableObject
     public long RunId { get; set; }
     public bool ContinueOnError { get; set; }
 
+    private int _battleVictoryCount;
+    private int _battleFailureCount;
+
+    public bool IsResidentBattleTask => string.Equals(
+        SourceItem?.InterfaceItem?.Entry,
+        "ResidentBattle",
+        StringComparison.Ordinal);
+
+    public int BattleVictoryCount => Volatile.Read(ref _battleVictoryCount);
+    public int BattleFailureCount => Volatile.Read(ref _battleFailureCount);
+
+    public void RecordBattleOutcome(bool succeeded)
+    {
+        if (!IsResidentBattleTask)
+            return;
+
+        if (succeeded)
+            Interlocked.Increment(ref _battleVictoryCount);
+        else
+            Interlocked.Increment(ref _battleFailureCount);
+    }
+
     private readonly object _earlyCompletionLock = new();
     private string? _earlyCompletionReason;
     private bool _earlyCompletionRequested;
@@ -90,6 +112,17 @@ public partial class MFATask : ObservableObject
 
         RunResult Complete(MFATaskStatus status, bool continueQueue = false)
         {
+            if (IsResidentBattleTask)
+            {
+                OwnerViewModel?.Processor.AddLogByKey(
+                    LangKeys.ResidentBattleResultSummary,
+                    (Avalonia.Media.IBrush?)null,
+                    true,
+                    true,
+                    BattleVictoryCount.ToString(),
+                    BattleFailureCount.ToString());
+            }
+
             if (instanceId != null)
                 TelemetryService.FinishTask(instanceId, this, status, status == MFATaskStatus.FAILED);
             return new RunResult(status, continueQueue);
@@ -109,6 +142,8 @@ public partial class MFATask : ObservableObject
 
         try
         {
+            Interlocked.Exchange(ref _battleVictoryCount, 0);
+            Interlocked.Exchange(ref _battleFailureCount, 0);
             var infinite = Count < 0;
             if (Count < 0)
                 Count = int.MaxValue;

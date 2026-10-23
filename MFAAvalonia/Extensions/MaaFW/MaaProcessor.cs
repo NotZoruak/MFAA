@@ -386,6 +386,18 @@ public class MaaProcessor
         });
     }
 
+    internal void RecordResidentBattleOutcomeFromResourceLog(string content)
+    {
+        var activeTask = Volatile.Read(ref _activeQueueTask);
+        if (activeTask?.IsResidentBattleTask != true)
+            return;
+
+        if (content.Contains("已确认战斗胜利", StringComparison.Ordinal))
+            activeTask.RecordBattleOutcome(succeeded: true);
+        else if (content.Contains("已确认战斗失败", StringComparison.Ordinal))
+            activeTask.RecordBattleOutcome(succeeded: false);
+    }
+
     public void AddLog(string content,
         string color = "",
         string weight = "Regular",
