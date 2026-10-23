@@ -22,7 +22,7 @@
 
 ## 行动与乱舞
 
-`actions.priority` 是恰好包含 `ultimate` 和 `bomb` 的有序数组，连线隐含最后。普通操作与乱舞共用顺序。
+`actions.priority` 是完整排列 `ultimate`、`bomb`、`enhanced_ghoul`、`black_ghoul` 的有序数组，普通四色连线与乱舞扫动作为最后回退。`actions.prioritize_actions` 可选，默认 `true`，用于启用编号顺序；关闭时四类行动按默认顺序处理。`actions.priority_count` 可选，取值为0到4，表示前几个行动类别在编辑器中标有优先序号；未编号类别按默认顺序排列。旧文件缺少这两个字段时按已开启且四类均已编号处理；旧文件只包含 `ultimate` 和 `bomb` 时，读取时会把强化与黑色饿鬼追加到末尾。
 
 - `bomb_levels`：允许的一二三级，可为空，不重复；执行端按可用等级从高到低选择。
 - `ultimates`：包含三个位置的有序规则，每条为 `slot`、`enabled`、可选 `condition`。位置为 1、2、3，自身就绪内置检查，额外条件不满足则检查后面的位置。

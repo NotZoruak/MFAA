@@ -31,6 +31,20 @@ public static class StrategyJson
         {
             var result = JsonSerializer.Deserialize<StrategyDocument>(json, Options)
                 ?? throw new StrategyValidationException(["策略文件内容为空。"]);
+            if (result.Stages != null)
+            {
+                foreach (var stage in result.Stages)
+                {
+                    var priority = stage?.Actions?.Priority;
+                    if (priority is { Count: 2 } &&
+                        priority.Contains(StrategyAction.Ultimate) &&
+                        priority.Contains(StrategyAction.Bomb))
+                    {
+                        priority.Add(StrategyAction.EnhancedGhoul);
+                        priority.Add(StrategyAction.BlackGhoul);
+                    }
+                }
+            }
             StrategyValidator.EnsureValid(result);
             return result;
         }

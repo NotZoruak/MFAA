@@ -45,7 +45,9 @@ public static class StrategyValidator
             }
             var actions = stage.Actions;
             if (!IsPermutation(actions.Priority, Enum.GetValues<StrategyAction>()))
-                errors.Add(prefix + "的行动优先级必须完整包含奥义和炸弹。");
+                errors.Add(prefix + "的行动优先级必须完整包含奥义、炸弹、强化饿鬼和黑色饿鬼。");
+            if (actions.PriorityCount is < 0 or > 4)
+                errors.Add(prefix + "的行动优先级编号数量必须位于0到4之间。");
             if (actions.BombLevels == null || actions.BombLevels.Distinct().Count() != actions.BombLevels.Count || actions.BombLevels.Any(x => x < 1 || x > 3))
                 errors.Add(prefix + "的炸弹等级无效或重复。");
             if (actions.NormalLink == null || actions.NormalLink.LongLinkThreshold != 7 ||

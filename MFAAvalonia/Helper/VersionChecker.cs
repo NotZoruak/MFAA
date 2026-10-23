@@ -2567,13 +2567,13 @@ public static class VersionChecker
 
 
     public static async Task<(string url, string latestVersion, string sha256)> GetLatestVersionAndDownloadUrlFromGithubAsync(
-        string owner = "MaaXYZ",
-        string repo = "MFAAvalonia",
+        string owner = "NotZoruak",
+        string repo = "MFAA",
         bool onlyCheck = false,
         string targetVersion = "",
         string currentVersion = "v0.0.0")
     {
-        var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
+        var versionType = repo.Equals("MFAA", StringComparison.OrdinalIgnoreCase)
             ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
             : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         string url = string.Empty;
@@ -2647,9 +2647,9 @@ public static class VersionChecker
                             latestVersion = tagVersion;
                             if (IsNewVersionAvailable(latestVersion, currentVersion))
                             {
-                                if (onlyCheck && repo != "MFAAvalonia")
+                                if (onlyCheck && repo != "MFAA")
                                     SaveRelease(tag, "body");
-                                if (!onlyCheck && repo != "MFAAvalonia")
+                                if (!onlyCheck && repo != "MFAA")
                                     SaveChangelog(tag, "body");
                             }
                             (url, sha256) = await GetDownloadUrlFromGitHubReleaseAsync(latestVersion, owner, repo).ConfigureAwait(false);
@@ -2692,9 +2692,9 @@ public static class VersionChecker
             latestVersion = bestVersion;
             if (IsNewVersionAvailable(latestVersion, currentVersion))
             {
-                if (onlyCheck && repo != "MFAAvalonia")
+                if (onlyCheck && repo != "MFAA")
                     SaveRelease(bestRelease, "body");
-                if (!onlyCheck && repo != "MFAAvalonia")
+                if (!onlyCheck && repo != "MFAA")
                     SaveChangelog(bestRelease, "body");
             }
             (url, sha256) = await GetDownloadUrlFromGitHubReleaseAsync(latestVersion, owner, repo).ConfigureAwait(false);

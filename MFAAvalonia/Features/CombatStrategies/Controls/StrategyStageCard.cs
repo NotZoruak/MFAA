@@ -94,7 +94,7 @@ public sealed class StrategyStageCard : UserControl
         var menu = new MFAAvalonia.Controls.LifecycleSafeContextMenu { Items = { renameItem, copy, initial, delete } };
         _body.IsEnabled = !session.IsReadOnly;
         _body.Margin = new Thickness(14, 8, 14, 12);
-        AddSection("行动优先级", BuildPriority(), "连线固定最后；普通操作与乱舞共用此顺序。");
+        AddSection("行动优先级", BuildPriority(), "勾选后点击行动类别依次编号；未编号类别按默认顺序处理。普通四色连线与乱舞扫动在此列表之后。");
         var bombs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
         foreach (var level in new[] { 1, 2, 3 })
             bombs.Children.Add(StrategyUi.Check($"{level} 级", stage.Actions.BombLevels.Contains(level), value =>
@@ -200,48 +200,104 @@ public sealed class StrategyStageCard : UserControl
 
     private Control BuildPriority()
     {
-        CheckBox? bombFirst = null;
-        CheckBox? ultimateFirst = null;
-        var syncing = false;
-        var choices = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 24 };
-
-        void Sync()
+        var settings = _stage.Actions;
+        var choices = new WrapPanel { Orientation = Orientation.Horizontal, IsVisible = settings.PrioritizeActions };
+        var toggle = StrategyUi.Check("设置行动优先级", settings.PrioritizeActions, value =>
         {
-            if (bombFirst == null || ultimateFirst == null) return;
-            syncing = true;
-            var selected = _stage.Actions.Priority.FirstOrDefault();
-            bombFirst.IsChecked = selected == StrategyAction.Bomb;
-            ultimateFirst.IsChecked = selected == StrategyAction.Ultimate;
-            syncing = false;
+            settings.PrioritizeActions = value;
+            choices.IsVisible = value;
+            _session.MarkDirty();
+        });
+        var actions = new[]
+        {
+            new EditorChoice<StrategyAction>(StrategyAction.Ultimate, "奥义"),
+            new EditorChoice<StrategyAction>(StrategyAction.Bomb, "炸弹"),
+            new EditorChoice<StrategyAction>(StrategyAction.EnhancedGhoul, "强化饿鬼"),
+            new EditorChoice<StrategyAction>(StrategyAction.BlackGhoul, "黑色饿鬼")
+        };
+        Render();
+        return StrategyUi.Column(toggle, choices);
+
+        void Render()
+        {
+            choices.Children.Clear();
+            var rankedActions = settings.Priority.Take(settings.PriorityCount).ToList();
+            foreach (var choice in actions)
+            {
+                var rank = rankedActions.IndexOf(choice.Value);
+                var indicatorText = new TextBlock
+                {
+                    Text = rank >= 0 ? (rank + 1).ToString() : string.Empty,
+                    FontSize = 11,
+                    FontWeight = FontWeight.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Foreground = Brushes.White
+                };
+                var indicator = new Border
+                {
+                    Width = 20,
+                    Height = 20,
+                    CornerRadius = new CornerRadius(5),
+                    BorderThickness = new Thickness(1),
+                    Child = indicatorText
+                };
+                indicator.Bind(Border.BackgroundProperty,
+                    new DynamicResourceExtension(rank >= 0 ? "SukiPrimaryColor" : "SukiCardBackground"));
+                indicator.Bind(Border.BorderBrushProperty,
+                    new DynamicResourceExtension(rank >= 0 ? "SukiPrimaryColor" : "SukiControlBorderBrush"));
+
+                var content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Children = { indicator, StrategyUi.Text(choice.Label) }
+                };
+                var option = new Button
+                {
+                    Content = content,
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Padding = new Thickness(4, 3),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                option.Click += (_, _) => SelectAction(choice.Value);
+                option.Margin = new Thickness(0, 3, 16, 3);
+                choices.Children.Add(option);
+            }
         }
 
-        void Select(StrategyAction action, bool isChecked)
+        void SelectAction(StrategyAction action)
         {
-            if (syncing) return;
-            var selected = _stage.Actions.Priority.FirstOrDefault();
-            if (!isChecked)
+            var priority = settings.Priority;
+            var count = settings.PriorityCount;
+            var ranked = priority.Take(count).ToList();
+            var unranked = priority.Skip(count).ToList();
+
+            if (count == priority.Count)
             {
-                if (selected == action) Sync();
-                return;
+                ranked.Clear();
+                ranked.Add(action);
+                settings.PriorityCount = 1;
+            }
+            else if (ranked.Remove(action))
+            {
+                settings.PriorityCount = ranked.Count;
+            }
+            else
+            {
+                ranked.Add(action);
+                settings.PriorityCount = ranked.Count;
             }
 
-            if (selected != action)
-            {
-                _stage.Actions.Priority.Clear();
-                _stage.Actions.Priority.Add(action);
-                _stage.Actions.Priority.Add(action == StrategyAction.Bomb ? StrategyAction.Ultimate : StrategyAction.Bomb);
-                _session.MarkDirty();
-            }
-            Sync();
+            unranked = actions.Select(choice => choice.Value).Where(value => !ranked.Contains(value)).ToList();
+            priority.Clear();
+            priority.AddRange(ranked);
+            priority.AddRange(unranked);
+            _session.MarkDirty();
+            Render();
         }
-
-        bombFirst = StrategyUi.Check("先使用炸弹", _stage.Actions.Priority.FirstOrDefault() == StrategyAction.Bomb,
-            value => Select(StrategyAction.Bomb, value));
-        ultimateFirst = StrategyUi.Check("先使用奥义", _stage.Actions.Priority.FirstOrDefault() == StrategyAction.Ultimate,
-            value => Select(StrategyAction.Ultimate, value));
-        choices.Children.Add(bombFirst);
-        choices.Children.Add(ultimateFirst);
-        return choices;
     }
 
     private Control BuildUltimates()

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace MFAAvalonia.Features.CombatStrategies;
 
-public enum StrategyAction { Ultimate, Bomb }
+public enum StrategyAction { Ultimate, Bomb, EnhancedGhoul, BlackGhoul }
 public enum GhoulColor { Red, Blue, Green, Yellow }
 public enum ConditionMatch { All, Any }
 public enum ConditionMetric { BattleNormalLinks, StageNormalLinks, EnemyHpPercent, AllyHpPercent, UltimateReady, FrenzyActive }
@@ -31,7 +31,9 @@ public sealed class StrategyStage
 
 public sealed class StageActions
 {
-    [JsonRequired] public List<StrategyAction> Priority { get; set; } = [StrategyAction.Ultimate, StrategyAction.Bomb];
+    [JsonRequired] public List<StrategyAction> Priority { get; set; } = [StrategyAction.Ultimate, StrategyAction.Bomb, StrategyAction.EnhancedGhoul, StrategyAction.BlackGhoul];
+    public bool PrioritizeActions { get; set; } = true;
+    public int PriorityCount { get; set; } = 4;
     [JsonRequired] public List<int> BombLevels { get; set; } = [3];
     [JsonRequired] public List<UltimateRule> Ultimates { get; set; } = [new() { Slot = 1 }, new() { Slot = 2 }, new() { Slot = 3 }];
     [JsonRequired] public NormalLinkSettings NormalLink { get; set; } = new();

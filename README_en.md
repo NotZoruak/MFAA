@@ -6,11 +6,11 @@
 
 A cross-platform desktop interface for MaaFramework
 
-[![License](https://img.shields.io/github/license/MaaXYZ/MFAAvalonia?style=flat-square&color=4a90d9)](./LICENSE)
+[![License](https://img.shields.io/github/license/NotZoruak/MFAA?style=flat-square&color=4a90d9)](./LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet?style=flat-square)](https://github.com/MaaXYZ/MFAAvalonia)
-[![Commit Activity](https://img.shields.io/github/commit-activity/m/MaaXYZ/MFAAvalonia?style=flat-square&color=00d4aa)](https://github.com/MaaXYZ/MFAAvalonia/commits)
-[![Stars](https://img.shields.io/github/stars/MaaXYZ/MFAAvalonia?style=flat-square&color=ffca28)](https://github.com/MaaXYZ/MFAAvalonia/stargazers)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet?style=flat-square)](https://github.com/NotZoruak/MFAA)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/NotZoruak/MFAA?style=flat-square&color=00d4aa)](https://github.com/NotZoruak/MFAA/commits)
+[![Stars](https://img.shields.io/github/stars/NotZoruak/MFAA?style=flat-square&color=ffca28)](https://github.com/NotZoruak/MFAA/stargazers)
 [![Mirror Chyan](https://img.shields.io/badge/Mirror%20Chyan-%239af3f6?style=flat-square&logo=countingworkspro&logoColor=4f46e5)](https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-badge)
 
 **English** | [简体中文](./README.md)
@@ -78,7 +78,7 @@ MFAAvalonia is intended for configuring and running packaged resources. Use the 
 
 ### Manual integration
 
-1. Download the release matching the target operating system and architecture from [Releases](https://github.com/MaaXYZ/MFAAvalonia/releases), then extract it.
+1. Download the release matching the target operating system and architecture from [Releases](https://github.com/NotZoruak/MFAA/releases), then extract it.
 2. Place `interface.json`, resource files, and required components according to the Project Interface V2 directory conventions.
 3. Install the .NET 10 Runtime and start the MFAAvalonia executable for your platform.
 
@@ -212,14 +212,14 @@ MFAAvalonia uses open-source projects and services including [MaaFramework](http
 
 Thanks to everyone who has contributed to MFAAvalonia.
 
-<a href="https://github.com/MaaXYZ/MFAAvalonia/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=MaaXYZ/MFAAvalonia&max=1000" alt="Contributors" />
+<a href="https://github.com/NotZoruak/MFAA/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=NotZoruak/MFAA&max=1000" alt="Contributors" />
 </a>
 
 <div align="center">
 
 **If this project helps you, please give us a ⭐ Star!**
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=MaaXYZ/MFAAvalonia&type=Date)](https://star-history.dera.page/#MaaXYZ/MFAAvalonia&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=NotZoruak/MFAA&type=Date)](https://star-history.dera.page/#NotZoruak/MFAA&Date)
 
 </div>

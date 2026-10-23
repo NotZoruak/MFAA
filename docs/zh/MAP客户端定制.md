@@ -6,7 +6,7 @@
 
 - 上游仓库：<https://github.com/MaaXYZ/MFAAvalonia>。
 - 当前基线：`450a8f3134d2b5ac3fce4fc8eeb3e745197b1717`，上游版本为 `v2.16.3-beta.1`。
-- 定制仓库：<https://github.com/NotZoruak/MFAAvalonia>。
+- 定制仓库：<https://github.com/NotZoruak/MFAA>。
 
 ## 作战策略编辑器（2026-10-19）
 
