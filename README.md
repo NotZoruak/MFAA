@@ -6,11 +6,11 @@
 
 MaaFramework 的跨平台通用桌面界面
 
-[![License](https://img.shields.io/github/license/MaaXYZ/MFAAvalonia?style=flat-square&color=4a90d9)](./LICENSE)
+[![License](https://img.shields.io/github/license/NotZoruak/MFAA?style=flat-square&color=4a90d9)](./LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet?style=flat-square)](https://github.com/MaaXYZ/MFAAvalonia)
-[![Commit Activity](https://img.shields.io/github/commit-activity/m/MaaXYZ/MFAAvalonia?style=flat-square&color=00d4aa)](https://github.com/MaaXYZ/MFAAvalonia/commits)
-[![Stars](https://img.shields.io/github/stars/MaaXYZ/MFAAvalonia?style=flat-square&color=ffca28)](https://github.com/MaaXYZ/MFAAvalonia/stargazers)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet?style=flat-square)](https://github.com/NotZoruak/MFAA)
+[![Commit Activity](https://img.shields.io/github/commit-activity/m/NotZoruak/MFAA?style=flat-square&color=00d4aa)](https://github.com/NotZoruak/MFAA/commits)
+[![Stars](https://img.shields.io/github/stars/NotZoruak/MFAA?style=flat-square&color=ffca28)](https://github.com/NotZoruak/MFAA/stargazers)
 [![Mirror酱](https://img.shields.io/badge/Mirror%E9%85%B1-%239af3f6?style=flat-square&logo=countingworkspro&logoColor=4f46e5)](https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-badge)
 
 [English](./README_en.md) | **简体中文**
@@ -78,7 +78,7 @@ MFAAvalonia 面向资源发布后的配置与运行。开发和排查 Pipeline �
 
 ### 手动集成
 
-1. 从 [Releases](https://github.com/MaaXYZ/MFAAvalonia/releases) 下载与目标系统及架构匹配的版本并解压。
+1. 从 [Releases](https://github.com/NotZoruak/MFAA/releases) 下载与目标系统及架构匹配的版本并解压。
 2. 按 Project Interface V2 的目录约定放置 `interface.json`、资源文件和所需组件。
 3. 安装 .NET 10 Runtime，然后启动对应平台的 MFAAvalonia 可执行文件。
 
@@ -109,7 +109,7 @@ MFAAvalonia 面向资源发布后的配置与运行。开发和排查 Pipeline �
 MFAAvalonia 支持通过命令行选择实例并执行任务。实例可以使用名称或实例 ID 指定；实例 ID 可在实例标签页的右键菜单中复制。
 
 ```text
-MFAAvalonia.exe [参数]
+MaaPazugiri.exe [参数]
 ```
 
 | 参数 | 作用 |
@@ -124,21 +124,21 @@ MFAAvalonia.exe [参数]
 
 ```powershell
 # 查看帮助
-.\MFAAvalonia.exe --help
+.\MaaPazugiri.exe --help
 
 # 切换到指定实例
-.\MFAAvalonia.exe --instance "日常任务"
-.\MFAAvalonia.exe -i 1a2b3c4d
+.\MaaPazugiri.exe --instance "日常任务"
+.\MaaPazugiri.exe -i 1a2b3c4d
 
 # 自动执行指定实例
-.\MFAAvalonia.exe --autostart -i "日常任务"
+.\MaaPazugiri.exe --autostart -i "日常任务"
 
 # 执行完成后退出
-.\MFAAvalonia.exe --autostart -i 1a2b3c4d -q
+.\MaaPazugiri.exe --autostart -i 1a2b3c4d -q
 
 # 若实例正在运行，则停止后重新执行
-.\MFAAvalonia.exe --autostart -i "日常任务" --forceStart
-.\MFAAvalonia.exe --autostart -c 1a2b3c4d -f
+.\MaaPazugiri.exe --autostart -i "日常任务" --forceStart
+.\MaaPazugiri.exe --autostart -c 1a2b3c4d -f
 ```
 
 ### 参数组合规则
@@ -212,14 +212,14 @@ MFAAvalonia 使用了 [MaaFramework](https://github.com/MaaXYZ/MaaFramework)、[
 
 感谢所有为 MFAAvalonia 做出贡献的开发者。
 
-<a href="https://github.com/MaaXYZ/MFAAvalonia/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=MaaXYZ/MFAAvalonia&max=1000" alt="Contributors" />
+<a href="https://github.com/NotZoruak/MFAA/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=NotZoruak/MFAA&max=1000" alt="Contributors" />
 </a>
 
 <div align="center">
 
 **如果这个项目对你有帮助，请给我们一个 ⭐ Star！**
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=MaaXYZ/MFAAvalonia&type=Date)](https://star-history.dera.page/#MaaXYZ/MFAAvalonia&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=NotZoruak/MFAA&type=Date)](https://star-history.dera.page/#NotZoruak/MFAA&Date)
 
 </div>

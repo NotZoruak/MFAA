@@ -7,6 +7,8 @@
     IsVisible="{Binding IsWindowVisible}"
     MinHeight="360"
     MinWidth="700"
+    Width="900"
+    Height="675"
     d:DesignHeight="450"
     d:DesignWidth="800" ShowTitle="False"
     mc:Ignorable="d"
@@ -174,16 +176,12 @@
                 <!--     </MultiBinding> -->
                 <!-- </TextBlock.Text> -->
             </TextBlock>
-            <TextBlock VerticalAlignment="Center" IsVisible="{calcBinding:Binding '!IsCustomTitleVisible' }"
-                       FontSize="13" Text="{markup:I18n {x:Static helper:LangKeys.AppTitle}}" IsHitTestVisible="False"
-                       FontWeight="Bold" />
-
+            <TextBlock VerticalAlignment="Center" IsVisible="{Binding IsResourceNameVisible}"
+                       IsHitTestVisible="False" FontSize="13" FontWeight="Bold"
+                       Text="{Binding ResourceName}" />
             <TextBlock VerticalAlignment="Center" Margin="5 0 0 0" IsVisible="{Binding IsResourceNameVisible}"
-                       Foreground="{DynamicResource SukiLowText}" IsHitTestVisible="False"
-                       FontSize="13" Text="{Binding ResourceName}" />
-            <TextBlock VerticalAlignment="Center" Margin="1 0 0 0" IsVisible="{Binding IsResourceNameVisible}"
-                       Foreground="{DynamicResource SukiLowText}" IsHitTestVisible="False"
-                       FontSize="13" Text="{Binding ResourceVersion}" />
+                       IsHitTestVisible="False" FontSize="13" FontWeight="Bold"
+                       Text="{Binding ResourceVersion}" />
         </StackPanel>
     </suki:SukiWindow.NonClientAreaContent>
     <suki:SukiWindow.Title>
@@ -195,9 +193,7 @@
                     <x:Static Member="helper:LangKeys.AppTitle" />
                 </x:Arguments>
             </markup:I18nBinding>
-            <Binding Path="Version" />
             <Binding Path="ResourceName" />
-            <Binding Path="ResourceVersion" />
             <Binding Path="IsResourceNameVisible" />
         </MultiBinding>
     </suki:SukiWindow.Title>
@@ -215,7 +211,7 @@
     <suki:SukiWindow.LogoContent>
         <Image
             Height="25"
-            Source="{x:Static helper:IconHelper.Icon}"
+            Source="{x:Static helper:IconHelper.Logo}"
             Stretch="Uniform"
             Width="28" />
 

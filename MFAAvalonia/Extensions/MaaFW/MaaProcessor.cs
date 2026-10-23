@@ -47,6 +47,7 @@ public class MaaProcessor
     private static readonly Random Random = new();
     private int _taskQueueTotal;
     private int _isTaskRunActive;
+    private MFATask? _activeQueueTask;
     private readonly BlockingCollection<Func<Task>> _commandQueue = new();
     private readonly object _commandThreadLock = new();
     private readonly CancellationTokenSource _commandThreadCts = new();
@@ -399,17 +400,14 @@ public class MaaProcessor
     public void AddLogByKey(string key, IBrush? brush = null, bool changeColor = true, bool transformKey = true, params string[] formatArgsKeys)
     {
         brush ??= Brushes.Black;
-        Task.Run(() =>
+        DispatcherHelper.PostOnMainThread(() =>
         {
-            DispatcherHelper.PostOnMainThread(() =>
-            {
-                var log = new LogItemViewModel(key, brush, "Regular", true, "HH':'mm':'ss", changeColor: changeColor, showTime: true, transformKey: transformKey, formatArgsKeys);
-                LogItemViewModels.Add(log);
-                PublishPlatformLog(log);
-                using var logScope = BeginInstanceLogScope("MonitorLog", "Monitor");
-                LoggerHelper.Info(log.Content);
-                TrimExcessLogs();
-            });
+            var log = new LogItemViewModel(key, brush, "Regular", true, "HH':'mm':'ss", changeColor: changeColor, showTime: true, transformKey: transformKey, formatArgsKeys);
+            LogItemViewModels.Add(log);
+            PublishPlatformLog(log);
+            using var logScope = BeginInstanceLogScope("MonitorLog", "Monitor");
+            LoggerHelper.Info(log.Content);
+            TrimExcessLogs();
         });
     }
 
@@ -422,20 +420,17 @@ public class MaaProcessor
     public void AddMarkdown(string key, IBrush? brush = null, bool changeColor = true, bool transformKey = true, params string[] formatArgsKeys)
     {
         brush ??= Brushes.Black;
-        Task.Run(() =>
+        DispatcherHelper.PostOnMainThread(() =>
         {
-            DispatcherHelper.PostOnMainThread(() =>
+            var log = new LogItemViewModel(key, brush, "Regular", true, "HH':'mm':'ss", changeColor: changeColor, showTime: true, transformKey: transformKey, formatArgsKeys)
             {
-                var log = new LogItemViewModel(key, brush, "Regular", true, "HH':'mm':'ss", changeColor: changeColor, showTime: true, transformKey: transformKey, formatArgsKeys)
-                {
-                    UseMarkdown = true
-                };
-                LogItemViewModels.Add(log);
-                PublishPlatformLog(log);
-                using var logScope = BeginInstanceLogScope("MonitorMarkdown", "Monitor");
-                LoggerHelper.Info(log.Content);
-                TrimExcessLogs();
-            });
+                UseMarkdown = true
+            };
+            LogItemViewModels.Add(log);
+            PublishPlatformLog(log);
+            using var logScope = BeginInstanceLogScope("MonitorMarkdown", "Monitor");
+            LoggerHelper.Info(log.Content);
+            TrimExcessLogs();
         });
     }
 
@@ -512,11 +507,37 @@ public class MaaProcessor
     /// modal 弹窗等待标志：FocusHandler 触发 modal 时设为 true，用户确认后设为 false
     /// </summary>
     private volatile bool _isWaitingForModal = false;
+    private readonly Stopwatch _recoveryClock = Stopwatch.StartNew();
+    private readonly TaskRecoveryMonitor _recoveryMonitor = new();
+    private MaaController? _recoveryController;
+    private int _isGameRecoveryRunning;
 
     /// <summary>
     /// 设置 modal 等待状态（由 FocusHandler 调用）
     /// </summary>
     public void SetWaitingForModal(bool waiting) => _isWaitingForModal = waiting;
+
+    public void RecordCustomActionActivity()
+    {
+        _recoveryMonitor.RecordActivity(_recoveryClock.Elapsed);
+    }
+
+    public bool RequestEarlyCompletionForActiveTask(string? reason)
+    {
+        var activeTask = Volatile.Read(ref _activeQueueTask);
+        return activeTask?.RequestEarlyCompletion(reason) == true;
+    }
+
+    public void LogRestartEvent(string eventName, string message, bool isError)
+    {
+        var content = $"卡死恢复：{eventName}：{message}";
+        if (isError)
+            LoggerHelper.Warning(content);
+        else
+            LoggerHelper.Info(content);
+        var prefix = isError ? "warn:" : "info:";
+        AddLog($"{prefix} {content}", (IBrush?)null);
+    }
 
     public void Dispose()
     {
@@ -679,6 +700,7 @@ public class MaaProcessor
         ResetActionFailedCount();
         if (maaTasker == null)
         {
+            UnsubscribeRecoveryController();
             var oldTasker = MaaTasker;
             MaaTasker = null; // 先设置为 null，防止重复释放
             var taskerStopped = true;
@@ -1207,6 +1229,11 @@ public class MaaProcessor
     private bool _suppressConnectionAttemptErrorToast;
     public bool IsConnecting => _isConnecting != 0;
     public bool IsTaskRunActive => Volatile.Read(ref _isTaskRunActive) != 0;
+    public bool IsGameRecoveryRunning
+    {
+        get => Volatile.Read(ref _isGameRecoveryRunning) != 0;
+        set => Volatile.Write(ref _isGameRecoveryRunning, value ? 1 : 0);
+    }
 
     private MaaController? GetScreenshotController(bool test)
     {
@@ -1843,9 +1870,48 @@ public class MaaProcessor
             }
             catch (Exception ex)
             {
-                TelemetryService.RecordTaskFailure(InstanceId, "controller_link_start_failed", "controller", ex);
-                throw;
+                var fallbackScreenCap = MaaAdbConnectionFallback.GetFallbackScreenCap(Config.AdbDevice.ScreenCap);
+                if (controller is not MaaAdbController || fallbackScreenCap == Config.AdbDevice.ScreenCap)
+                {
+                    TelemetryService.RecordTaskFailure(InstanceId, "controller_link_start_failed", "controller", ex);
+                    throw;
+                }
+
+                LoggerHelper.Warning($"截图方式 {Config.AdbDevice.ScreenCap} 连接失败，回退到 {fallbackScreenCap} 后重试：{ex.Message}");
+                tasker.Dispose();
+                Config.AdbDevice.ScreenCap = fallbackScreenCap;
+                controller = InitializeController(MaaControllerTypes.Adb, logConfig: true);
+                tasker = new MaaTasker
+                {
+                    Controller = controller,
+                    Resource = maaResource,
+                    Toolkit = Toolkit,
+                    Global = Global,
+                    DisposeOptions = DisposeOptions.All,
+                };
+                linkStatus = tasker.Controller?.LinkStart().Wait();
             }
+            if (linkStatus != MaaJobStatus.Succeeded)
+            {
+                var fallbackScreenCap = MaaAdbConnectionFallback.GetFallbackScreenCap(Config.AdbDevice.ScreenCap);
+                if (controller is MaaAdbController && fallbackScreenCap != Config.AdbDevice.ScreenCap)
+                {
+                    LoggerHelper.Warning($"截图方式 {Config.AdbDevice.ScreenCap} 连接返回失败，回退到 {fallbackScreenCap} 后重试。");
+                    tasker.Dispose();
+                    Config.AdbDevice.ScreenCap = fallbackScreenCap;
+                    controller = InitializeController(MaaControllerTypes.Adb, logConfig: true);
+                    tasker = new MaaTasker
+                    {
+                        Controller = controller,
+                        Resource = maaResource,
+                        Toolkit = Toolkit,
+                        Global = Global,
+                        DisposeOptions = DisposeOptions.All,
+                    };
+                    linkStatus = tasker.Controller?.LinkStart().Wait();
+                }
+            }
+
             if (linkStatus != MaaJobStatus.Succeeded)
             {
                 LoggerHelper.Warning($"控制器 LinkStart 失败：状态={linkStatus}");
@@ -1857,6 +1923,9 @@ public class MaaProcessor
             tasker.Releasing += (_, _) =>
             {
                 tasker.Callback -= HandleCallBack;
+                var releasedController = tasker.Controller;
+                if (ReferenceEquals(_recoveryController, releasedController))
+                    UnsubscribeRecoveryController();
             };
 
             try
@@ -1931,7 +2000,10 @@ public class MaaProcessor
             // from the queued MaaJob and video from the Shizuku display backend, so it
             // must not subscribe to this synchronous native callback stream.
             if (!OperatingSystem.IsAndroid())
+            {
                 tasker.Callback += HandleCallBack;
+                SubscribeRecoveryController(tasker.Controller);
+            }
             ResetScreencapFailureLogFlags();
             return (tasker, InvalidResource, ShouldRetry);
         }
@@ -1953,17 +2025,44 @@ public class MaaProcessor
         }
 
     }
-// public void HandleControllerCallBack(object? sender, MaaCallbackEventArgs args)
-// {
-//     var message = args.Message;
-//     if (message == MaaMsg.Controller.Action.Failed)
-//     {
-//         HandleScreencapFailure(true);
-//     }
-// }
+    private void SubscribeRecoveryController(MaaController? controller)
+    {
+        UnsubscribeRecoveryController();
+        _recoveryController = controller;
+        if (controller != null)
+            controller.Callback += HandleRecoveryControllerCallback;
+    }
+
+    private void UnsubscribeRecoveryController()
+    {
+        var controller = Interlocked.Exchange(ref _recoveryController, null);
+        if (controller != null)
+            controller.Callback -= HandleRecoveryControllerCallback;
+    }
+
+    private void HandleRecoveryControllerCallback(object? sender, MaaCallbackEventArgs args)
+    {
+        var controller = Volatile.Read(ref _recoveryController);
+        if (controller == null || !ReferenceEquals(sender, controller)
+            || args.Message != MaaMsg.Controller.Action.Succeeded)
+            return;
+
+        try
+        {
+            // Agent 直接操作控制器时没有节点点击回调；这里只读事件，不重入底层控制器。
+            var action = JObject.Parse(args.Details)["action"];
+            if (action?.Type == JTokenType.String)
+                _recoveryMonitor.RecordControllerAction(action.Value<string>()!, _recoveryClock.Elapsed);
+        }
+        catch (JsonException)
+        {
+            // 无法解析的回调不作为输入成功的证据。
+        }
+    }
 
     public void HandleCallBack(object? sender, MaaCallbackEventArgs args)
     {
+        _recoveryMonitor.RecordCallback(_recoveryClock.Elapsed);
         if (OperatingSystem.IsAndroid())
         {
             // MaaFramework invokes callbacks synchronously while some native action
@@ -2003,6 +2102,18 @@ public class MaaProcessor
         }
 
         var callbackName = jObject["name"]?.ToString() ?? string.Empty;
+        if (args.Message.StartsWith(MaaMsg.Node.Action.Succeeded, StringComparison.Ordinal))
+        {
+            var actionDetails = jObject["action_details"];
+            var action = actionDetails?["action"]?.ToString() ?? string.Empty;
+            if (action == "Click")
+            {
+                var box = actionDetails?["box"] as JArray;
+                var x = box is { Count: >= 2 } ? (int)Math.Round(box[0].Value<double>()) : 0;
+                var y = box is { Count: >= 2 } ? (int)Math.Round(box[1].Value<double>()) : 0;
+                _recoveryMonitor.FeedAction(callbackName, action, x, y, _recoveryClock.Elapsed);
+            }
+        }
         var shouldTraceNodeEvent = ShouldTraceNodeEvent(jObject, args.Message);
         if (CancellationTokenSource?.IsCancellationRequested != true
             && (shouldTraceNodeEvent || args.Message.Equals("Node.PipelineNode.Starting", StringComparison.Ordinal)))
@@ -2305,13 +2416,31 @@ public class MaaProcessor
                     LoggerHelper.Info($"控制器配置：{Config.AdbDevice.Config}");
                 }
 
-                return new MaaAdbController(
-                    Config.AdbDevice.AdbPath,
-                    Config.AdbDevice.AdbSerial,
-                    Config.AdbDevice.ScreenCap, Config.AdbDevice.Input,
-                    !string.IsNullOrWhiteSpace(Config.AdbDevice.Config) ? Config.AdbDevice.Config : "{}",
-                    Path.Combine(AppPaths.InstallRoot, "libs", "MaaAgentBinary")
-                );
+                var screenCap = Config.AdbDevice.ScreenCap;
+                var agentPath = Path.Combine(AppPaths.InstallRoot, "libs", "MaaAgentBinary");
+                try
+                {
+                    return new MaaAdbController(
+                        Config.AdbDevice.AdbPath,
+                        Config.AdbDevice.AdbSerial,
+                        screenCap, Config.AdbDevice.Input,
+                        !string.IsNullOrWhiteSpace(Config.AdbDevice.Config) ? Config.AdbDevice.Config : "{}",
+                        agentPath);
+                }
+                catch (Exception ex) when (MaaAdbConnectionFallback.GetFallbackScreenCap(screenCap) != screenCap)
+                {
+                    var fallbackScreenCap = MaaAdbConnectionFallback.GetFallbackScreenCap(screenCap);
+                    LoggerHelper.Warning($"截图方式 {screenCap} 初始化失败，回退到 {fallbackScreenCap} 后重试：{ex.Message}");
+                    if (logConfig)
+                        Config.AdbDevice.ScreenCap = fallbackScreenCap;
+
+                    return new MaaAdbController(
+                        Config.AdbDevice.AdbPath,
+                        Config.AdbDevice.AdbSerial,
+                        fallbackScreenCap, Config.AdbDevice.Input,
+                        !string.IsNullOrWhiteSpace(Config.AdbDevice.Config) ? Config.AdbDevice.Config : "{}",
+                        agentPath);
+                }
 
             case MaaControllerTypes.PlayCover:
                 if (logConfig)
@@ -3034,9 +3163,17 @@ public class MaaProcessor
             new UniversalEnumConverter<AdbInputMethods>());
         return inputType switch
         {
-            AdbInputMethods.None => Config.AdbDevice.Info?.InputMethods ?? AdbInputMethods.Default,
+            AdbInputMethods.None => GetEffectiveAdbInputMethods(),
             _ => inputType
         };
+    }
+
+    private AdbInputMethods GetEffectiveAdbInputMethods()
+    {
+        var detected = Config.AdbDevice.Info?.InputMethods ?? AdbInputMethods.Default;
+        return Config.AdbDevice.Name?.Contains("MuMu", StringComparison.OrdinalIgnoreCase) == true
+            ? detected | AdbInputMethods.EmulatorExtras
+            : detected;
     }
 
     private AdbScreencapMethods ConfigureAdbScreenCapTypes()
@@ -3627,7 +3764,17 @@ public class MaaProcessor
             }
             if (token.IsCancellationRequested) break;
 
-            var result = await task.Run(token);
+            Volatile.Write(ref _activeQueueTask, task);
+            MFATask.RunResult result;
+            try
+            {
+                result = await task.Run(token);
+            }
+            finally
+            {
+                Interlocked.CompareExchange(ref _activeQueueTask, null, task);
+            }
+
             if (result.Status == MFATask.MFATaskStatus.FAILED)
             {
                 completedWithFailures = true;
@@ -4050,9 +4197,49 @@ public class MaaProcessor
             await MeasureExecutionTimeAsync(async () =>
             {
                 token.ThrowIfCancellationRequested();
-                MaaTasker?.Controller.Screencap().Wait();
+                var controller = MaaTasker?.Controller;
+                if (controller == null)
+                    throw new InvalidOperationException("截图测试失败：控制器未初始化。");
+
+                var status = controller.Screencap().Wait();
+                if (status == MaaJobStatus.Succeeded)
+                    return;
+
+                if (await FallbackToDefaultScreencapAsync(status, token))
+                    return;
+
+                throw new InvalidOperationException($"截图测试失败：状态={status}。");
             });
         }, token: token, name: "截图测试");
+    }
+
+    private async Task<bool> FallbackToDefaultScreencapAsync(MaaJobStatus failedStatus, CancellationToken token)
+    {
+        var currentScreenCap = Config.AdbDevice.ScreenCap;
+        var fallbackScreenCap = MaaAdbConnectionFallback.GetFallbackScreenCap(currentScreenCap);
+        if (fallbackScreenCap == currentScreenCap)
+            return false;
+
+        LoggerHelper.Warning($"截图方式 {currentScreenCap} 截图失败：状态={failedStatus}；回退到 {fallbackScreenCap} 并重新连接。");
+        Config.AdbDevice.ScreenCap = fallbackScreenCap;
+        SetTasker();
+
+        var tasker = await GetTaskerAsync(token);
+        if (tasker?.Controller == null)
+        {
+            LoggerHelper.Error($"截图方式回退到 {fallbackScreenCap} 后，控制器重新初始化失败。");
+            return false;
+        }
+
+        var fallbackStatus = tasker.Controller.Screencap().Wait();
+        if (fallbackStatus == MaaJobStatus.Succeeded)
+        {
+            LoggerHelper.Info($"截图方式已回退到 {fallbackScreenCap}，截图测试通过。");
+            return true;
+        }
+
+        LoggerHelper.Error($"截图方式回退到 {fallbackScreenCap} 后截图仍失败：状态={fallbackStatus}。");
+        return false;
     }
 
     async private Task HandleDeviceConnectionAsync(CancellationToken token, bool showMessage = true)
@@ -4148,6 +4335,7 @@ public class MaaProcessor
 
             if (!connected)
             {
+                token.ThrowIfCancellationRequested();
                 _suppressConnectionAttemptErrorToast = previousSuppressConnectionAttemptErrorToast;
                 if (!tuple.Item2 && shouldRetry)
                     HandleConnectionFailureAsync(controllerType, token);
@@ -4337,12 +4525,78 @@ public class MaaProcessor
 
     async private Task<MaaJobStatus> TryRunTasksAsync(MaaTasker? maa, string? task, string? param, CancellationToken token)
     {
-        if (maa == null || task == null) return MaaJobStatus.Invalid;
+        if (maa == null || task == null)
+            return MaaJobStatus.Invalid;
 
-        var job = maa.AppendTask(task, param ?? "{}");
-        TelemetryService.SetActiveTaskId(InstanceId, job.Id);
-        return await TaskManager.RunTaskAsync(() => job.Wait(), token, (ex) => throw ex,
-            name: "队列任务", catchException: true, shouldLog: false);
+        while (true)
+        {
+            token.ThrowIfCancellationRequested();
+            _recoveryMonitor.Start(_recoveryClock.Elapsed);
+            try
+            {
+                var job = maa.AppendTask(task, param ?? "{}");
+                TelemetryService.SetActiveTaskId(InstanceId, job.Id);
+                var completion = TaskManager.RunTaskAsync(() => job.Wait(), token, (ex) => throw ex,
+                    name: "队列任务", catchException: true, shouldLog: false);
+                string? reason = null;
+                while (!completion.IsCompleted)
+                {
+                    await Task.WhenAny(completion, Task.Delay(TimeSpan.FromSeconds(5), token));
+                    token.ThrowIfCancellationRequested();
+                    if (completion.IsCompleted)
+                        break;
+
+                    var shouldMonitor = TaskRecoveryPolicy.ShouldMonitor(
+                        OperatingSystem.IsAndroid(),
+                        ViewModel?.CurrentController == MaaControllerTypes.Adb,
+                        PlatformControllerFactory.CanInitializeWithoutDevice,
+                        ViewModels.UsersControls.Settings.AddTaskDialogViewModel.SpecialActionNames.Contains(task));
+                    reason = _recoveryMonitor.GetReason(_recoveryClock.Elapsed, TimeSpan.FromSeconds(120),
+                        shouldMonitor, _isWaitingForModal || IsGameRecoveryRunning);
+                    if (reason != null)
+                        break;
+                }
+
+                if (reason == null)
+                    return await completion;
+
+                _recoveryMonitor.Stop();
+                token.ThrowIfCancellationRequested();
+                LogRestartEvent("重启游戏", $"检测到任务疑似卡死：{TaskRecoveryMonitor.GetDisplayReason(reason)}", true);
+                var stopping = Task.Run(() => maa.Stop().Wait());
+                try
+                {
+                    var emulatorUnresponsive = TaskRecoveryMonitor.IsEmulatorUnresponsiveReason(reason);
+                    await Task.Run(() => Custom.RestartGameAction.RestartAndReloadGame(
+                        logAutoRecovery: false, processor: this, token: token,
+                        emulatorUnresponsive: emulatorUnresponsive), token);
+                    if (await stopping.WaitAsync(TimeSpan.FromSeconds(30), token) != MaaJobStatus.Succeeded)
+                        throw new InvalidOperationException("卡死恢复时底层执行器未能停止。");
+                    await completion.WaitAsync(TimeSpan.FromSeconds(30), token);
+                    token.ThrowIfCancellationRequested();
+                    SetTasker();
+                    await ReconnectAsync(token);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    LogRestartEvent("重启游戏", $"恢复失败，停止任务：{ex.Message}", true);
+                    CancelOperations();
+                    Stop(MFATask.MFATaskStatus.FAILED);
+                    throw;
+                }
+
+                maa = MaaTasker ?? throw new InvalidOperationException("卡死恢复后未能重建任务执行器。");
+                LogRestartEvent("重启游戏", $"重连完成，继续中断任务 {task}", false);
+            }
+            finally
+            {
+                _recoveryMonitor.Stop();
+            }
+        }
     }
 
     async private Task RunScript(string str = "Prescript")
@@ -4427,7 +4681,7 @@ public class MaaProcessor
 
     #region 停止任务
 
-    private readonly Lock _stopLock = new();
+    private readonly TaskStopLifecycle _stopLifecycle = new();
 
     public void Stop(MFATask.MFATaskStatus status, bool finished = false, bool onlyStart = false,
         Action? action = null, bool queueCompleted = false)
@@ -4435,42 +4689,30 @@ public class MaaProcessor
         EnqueueCommand(() => StopInternal(status, finished, onlyStart, queueCompleted, action));
     }
 
-    private Task StopInternal(MFATask.MFATaskStatus status, bool finished, bool onlyStart,
+    private async Task StopInternal(MFATask.MFATaskStatus status, bool finished, bool onlyStart,
         bool queueCompleted, Action? action)
     {
         using var logScope = BeginInstanceLogScope("StopTask", "Worker");
-        ResetActionFailedCount();
-        ClearTaskbarProgress();
-        _taskQueueTotal = 0;
-
-        lock (_stopLock)
+        try
         {
-            LoggerHelper.Info("停止前状态：" + Status);
-            if (Status == MFATask.MFATaskStatus.STOPPING)
-                return Task.CompletedTask;
-            Status = MFATask.MFATaskStatus.STOPPING;
-            ViewModel?.SetAdbRecoverySelectionLock(false);
-            DispatcherHelper.PostOnMainThread(() =>
+            await _stopLifecycle.RunAsync(async () =>
             {
-                if (ViewModel != null) ViewModel.ToggleEnable = false;
-            });
-            try
-            {
+                ResetActionFailedCount();
+                ClearTaskbarProgress();
+                _taskQueueTotal = 0;
                 var isUpdateRelated = TaskQueue.Any(task => task.IsUpdateRelated);
                 ViewModel?.SetCurrentTaskName(string.Empty);
                 if (!ShouldProcessStop(finished))
                 {
-                    ToastHelper.Warn(LangKeys.NoTaskToStop.ToLocalization());
-
                     TaskQueue.Clear();
-                    return Task.CompletedTask;
+                    return;
                 }
 
                 CancelOperations(status == MFATask.MFATaskStatus.STOPPED && !_agentStarted && _agentContexts.Count > 0);
 
                 TaskQueue.Clear();
 
-                ExecuteStopCore(finished, async () =>
+                await ExecuteStopCore(finished, async () =>
                 {
                     var stopResult = MaaJobStatus.Succeeded;
 
@@ -4495,23 +4737,35 @@ public class MaaProcessor
 
                     }
                     HandleStopResult(status, stopResult, onlyStart, queueCompleted, action, isUpdateRelated);
-                    DispatcherHelper.PostOnMainThread(() =>
-                    {
-                        if (ViewModel != null) ViewModel.ToggleEnable = true;
-                    });
                 });
-            }
-            catch (Exception ex)
+            }, stopping =>
             {
+                if (stopping)
+                {
+                    LoggerHelper.Info("停止前状态：" + Status);
+                    Status = MFATask.MFATaskStatus.STOPPING;
+                    ViewModel?.SetAdbRecoverySelectionLock(false);
+                }
+                else if (Status == MFATask.MFATaskStatus.STOPPING)
+                {
+                    Status = status == MFATask.MFATaskStatus.STOPPING
+                        ? MFATask.MFATaskStatus.STOPPED
+                        : status;
+                }
+
                 DispatcherHelper.PostOnMainThread(() =>
                 {
-                    if (ViewModel != null) ViewModel.ToggleEnable = true;
+                    if (ViewModel != null)
+                        ViewModel.ToggleEnable = !stopping;
+                    if (!stopping)
+                        Instances.RootViewModel.Idle = !Processors.Any(processor => processor.TaskQueue.Count > 0);
                 });
-                HandleStopException(ex);
-            }
+            });
         }
-
-        return Task.CompletedTask;
+        catch (Exception ex)
+        {
+            HandleStopException(ex);
+        }
     }
 
 
@@ -4533,16 +4787,14 @@ public class MaaProcessor
             || finished;
     }
 
-    private void ExecuteStopCore(bool finished, Action stopAction)
+    private Task ExecuteStopCore(bool finished, Func<Task> stopAction)
     {
-        TaskManager.RunTaskAsync(() =>
+        return TaskManager.RunTaskAsync(async () =>
         {
             if (!finished) DispatcherHelper.PostOnMainThread(() => AddLogByKey(LangKeys.Stopping, (IBrush?)null));
 
-            stopAction.Invoke();
-
-            DispatcherHelper.PostOnMainThread(() => Instances.RootViewModel.Idle = true);
-        }, null, "停止maafw任务");
+            await stopAction();
+        }, null, "停止maafw任务", catchException: false);
     }
 
     private MaaJobStatus AbortCurrentTasker()
@@ -5032,6 +5284,7 @@ public class MaaProcessor
             tasker.Resource.Register(new Custom.WebhookAction());
             tasker.Resource.Register(new Custom.HeiLiuAction((content, color) => AddLog(content, color)));
             tasker.Resource.Register(new Custom.SwitchInstanceAction(this));
+            tasker.Resource.Register(new Custom.CompleteCurrentTaskAction(this));
             LoggerHelper.Info("已注册内置特殊任务动作。");
 
             // 获取当前资源的自定义目录

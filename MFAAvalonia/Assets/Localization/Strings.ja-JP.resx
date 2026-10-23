@@ -47,7 +47,7 @@
     <value>更新を適用しています...</value>
   </data>
   <data name="AppTitle" xml:space="preserve">
-    <value>MFA タスクマネージャー</value>
+    <value>MaaPazugiri</value>
   </data>
   <data name="AutoDetect" xml:space="preserve">
     <value>自動検出</value>
@@ -211,6 +211,9 @@
   <data name="GlobalOption" xml:space="preserve">
     <value>グローバルタスク設定</value>
   </data>
+  <data name="GlobalSetting" xml:space="preserve">
+    <value>グローバル</value>
+  </data>
   <data name="ControllerPresetConfig" xml:space="preserve">
     <value>コントローラープリセット設定</value>
   </data>
@@ -324,6 +327,9 @@
   </data>
   <data name="TaskStart" xml:space="preserve">
     <value>タスク開始: {0}</value>
+  </data>
+  <data name="TaskRoundComplete" xml:space="preserve">
+    <value>タスク完了: {0} 進捗 {1}/{2}</value>
   </data>
   <data name="TaskStopped" xml:space="preserve">
     <value>タスクは停止しました</value>
@@ -1294,6 +1300,9 @@
   <data name="SelectAll" xml:space="preserve">
         <value>すべて選択</value>
     </data>
+  <data name="ToggleSelectAll" xml:space="preserve">
+    <value>すべて選択／選択解除</value>
+  </data>
   <data name="SelectExecutableFile" xml:space="preserve">
         <value>実行可能ファイルの選択</value>
     </data>
@@ -2034,7 +2043,7 @@
         <value>すべて選択/すべて選択解除</value>
     </data>
   <data name="TutorialStepSelectAllDesc" xml:space="preserve">
-        <value>これら 2 つのボタンは、すべてのタスクをすばやくオンまたはオフにします。左が「すべて選択」、右が「すべて選択解除」です。</value>
+        <value>このボタンは、現在の選択状態に応じてすべてのタスクを選択または解除します。</value>
     </data>
   <data name="TutorialStepAddTaskBtnTitle" xml:space="preserve">
         <value>タスクの追加とリセット</value>

@@ -27,7 +27,7 @@ env:
   LAUNCHER_LABEL: Maa Example
   LAUNCHER_ICON: android/icon.png
   RESOURCE_ROOT: .
-  MFA_REPOSITORY: MaaXYZ/MFAAvalonia
+  MFA_REPOSITORY: NotZoruak/MFAA
   MFA_REF: main
   P4A_ENTRYPOINT: agent/main.py
 ```

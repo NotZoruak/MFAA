@@ -16,6 +16,7 @@ public class DragAdorner : Control
     private double _yPosition;
     private bool _begin;
     private bool _end;
+    private bool _vertical;
 
     public DragAdorner(double x, double width, IBrush brush)
     {
@@ -28,7 +29,19 @@ public class DragAdorner : Control
 
     public void UpdatePosition(double y, bool begin = false, bool end = false)
     {
+        _vertical = false;
         _yPosition = y;
+        _begin = begin;
+        _end = end;
+        InvalidateVisual();
+    }
+
+    public void UpdateVerticalPosition(double x, double y, double height, bool begin = false, bool end = false)
+    {
+        _vertical = true;
+        _originX = x;
+        _yPosition = y;
+        _totalWidth = height;
         _begin = begin;
         _end = end;
         InvalidateVisual();
@@ -54,6 +67,26 @@ public class DragAdorner : Control
         const double arrowWidth = 1.5; // 箭头宽度
         const double linePadding = 8; // 线端留白
         const double xOffSet = 5; // x轴偏移
+        if (_vertical)
+        {
+            var lineX = _originX + 0.5;
+            var startY = _yPosition + linePadding - xOffSet;
+            var endY = _yPosition + _totalWidth - linePadding - xOffSet;
+            context.DrawLine(_linePen, new Point(lineX, startY - arrowWidth), new Point(lineX, endY + arrowWidth));
+
+            if (!_begin)
+            {
+                context.DrawLine(_linePen, new Point(lineX, startY), new Point(lineX - arrowHeight, startY - arrowWidth));
+                context.DrawLine(_linePen, new Point(lineX - 1, startY - arrowWidth), new Point(lineX + arrowHeight, startY - arrowWidth));
+            }
+            if (!_end)
+            {
+                context.DrawLine(_linePen, new Point(lineX, endY), new Point(lineX - arrowHeight, endY + arrowWidth));
+                context.DrawLine(_linePen, new Point(lineX - 1, endY + arrowWidth), new Point(lineX + arrowHeight, endY + arrowWidth));
+            }
+            return;
+        }
+
         // 主横线坐标计算（带抗锯齿偏移）
         var lineY = _yPosition + 0.5;
         var startX = _originX + linePadding - xOffSet;

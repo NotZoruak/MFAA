@@ -1,4 +1,5 @@
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.ViewModels.Other;
@@ -20,6 +21,7 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
 {
     public const string NEW_SEPARATOR = "<|||>";
     public const string OLD_SEPARATOR = ":";
+    public const string LightweightRecognitionOptionName = "轻量识别";
 
 
     /// <summary>
@@ -31,6 +33,10 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         ref bool firstTask,
         IList<DragItemViewModel>? oldDrags = null)
     {
+        StrategyOptionProvider.Refresh(
+            maaInterface,
+            Path.Combine(AppPaths.ConfigDirectory, "strategies"),
+            message => LoggerHelper.Warning(message));
         var instanceConfig = taskQueueViewModel.Processor.InstanceConfiguration;
 
         var currentTasks = instanceConfig.GetValue(ConfigurationKeys.CurrentTasks, new List<string>());
@@ -131,24 +137,36 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
     /// </summary>
     private void InitializeGlobalSelectOptions()
     {
-        if (maaInterface == null || maaInterface.GlobalOption == null || maaInterface.GlobalOption.Count == 0)
+        var savedGlobalOptions = taskQueueViewModel.Processor.InstanceConfiguration.GetValue(
+            ConfigurationKeys.GlobalOptionItems,
+            new List<MaaInterface.MaaInterfaceSelectOption>());
+        InitializeGlobalSelectOptions(maaInterface, savedGlobalOptions);
+    }
+
+    public static void InitializeGlobalSelectOptions(
+        MaaInterface? maaInterface,
+        List<MaaInterface.MaaInterfaceSelectOption>? savedGlobalOptions)
+    {
+        if (maaInterface == null)
+            return;
+
+        var optionNames = maaInterface.GlobalOption?.ToList() ?? new List<string>();
+        if (maaInterface.Option?.ContainsKey(LightweightRecognitionOptionName) == true &&
+            !optionNames.Contains(LightweightRecognitionOptionName))
         {
-            if (maaInterface != null)
-                maaInterface.GlobalSelectOptions = null;
+            optionNames.Add(LightweightRecognitionOptionName);
+        }
+
+        if (optionNames.Count == 0)
+        {
+            maaInterface.GlobalSelectOptions = null;
             return;
         }
 
-        var config = taskQueueViewModel.Processor.InstanceConfiguration;
-        var savedGlobalOptions = config.GetValue(
-            ConfigurationKeys.GlobalOptionItems,
-            new List<MaaInterface.MaaInterfaceSelectOption>());
         var savedDict = savedGlobalOptions?.ToDictionary(o => o.Name ?? string.Empty)
             ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
 
-        var existingDict = maaInterface.GlobalSelectOptions?.ToDictionary(o => o.Name ?? string.Empty)
-            ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
-
-        maaInterface.GlobalSelectOptions = maaInterface.GlobalOption.Select(optionName =>
+        maaInterface.GlobalSelectOptions = optionNames.Select(optionName =>
         {
             if (savedDict.TryGetValue(optionName, out var saved))
             {
@@ -163,14 +181,10 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
                 SetDefaultOptionValue(maaInterface, savedOption);
                 return savedOption;
             }
-            if (existingDict.TryGetValue(optionName, out var existing))
-            {
-                SetDefaultOptionValue(maaInterface, existing);
-                return existing;
-            }
-            var opt = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
-            SetDefaultOptionValue(maaInterface, opt);
-            return opt;
+
+            var option = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
+            SetDefaultOptionValue(maaInterface, option);
+            return option;
         }).ToList();
     }
 
@@ -579,7 +593,12 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         try
         {
             var defaultIndex = io.Cases?.FindIndex(c => c.Name == io.DefaultCase) ?? -1;
-            if (defaultIndex != -1 && option.Index == null)
+            var restoredStrategyCase = StrategyOptionProvider.RestoreSelectedCase(io, option);
+            if (option.Name == StrategyOptionProvider.OptionName && !restoredStrategyCase)
+            {
+                option.Index = defaultIndex >= 0 ? defaultIndex : 0;
+            }
+            else if (defaultIndex != -1 && option.Index == null)
             {
                 option.Index = defaultIndex;
             }
@@ -697,8 +716,9 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
             if (settingItem != null) finalItems.Add(settingItem);
         }
 
-        // 如果有 global_option，置顶显示一个全局设置项（包含所有全局选项）
-        if (maaInterface?.GlobalOption is { Count: > 0 } && maaInterface.GlobalSelectOptions is { Count: > 0 })
+        // Android 移动界面仍通过任务列表中的全局设置项编辑全局选项。
+        if (OperatingSystem.IsAndroid() &&
+            maaInterface?.GlobalOption is { Count: > 0 } && maaInterface.GlobalSelectOptions is { Count: > 0 })
         {
             var globalOptionItem = CreateGlobalOptionItem(drags);
             if (globalOptionItem != null)

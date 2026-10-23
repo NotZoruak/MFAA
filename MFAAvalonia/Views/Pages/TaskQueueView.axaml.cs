@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Features.CombatStrategies;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
@@ -24,6 +25,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.ComponentModel;
 using System.Linq;
+using System.IO;
 using System.Text.RegularExpressions;
 using FontWeight = Avalonia.Media.FontWeight;
 using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
@@ -93,7 +95,6 @@ public partial class TaskQueueView : UserControl
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         UpdateViewModelSubscription(DataContext as TaskQueueViewModel);
-        ApplyLiveViewCardState();
     }
 
     private TaskQueueViewModel? _subscribedViewModel;
@@ -115,7 +116,6 @@ public partial class TaskQueueView : UserControl
             _subscribedViewModel.SetOptionRequested += OnSetOptionRequested;
             _subscribedViewModel.TaskItemViewModels.CollectionChanged += OnTaskItemsCollectionChanged;
             Dispatcher.UIThread.Post(ClearUnsupportedSelection, DispatcherPriority.Background);
-            Dispatcher.UIThread.Post(ApplyLiveViewCardState, DispatcherPriority.Background);
         }
     }
 
@@ -517,7 +517,7 @@ public partial class TaskQueueView : UserControl
         if (sender is not ContextMenu menu)
             return;
 
-        // ContextMenu 作为 StaticResource 会复用，DataContext 可能滞后。
+        // 每条任务项单独持有菜单，打开时以当前任务项刷新菜单状态。
         // 从 PlacementTarget 向上找真实的 DragItemViewModel。
         var currentItem = _lastTaskMenuItem
                           ?? ResolveTaskItemFromPlacementTarget(menu.PlacementTarget)
@@ -680,11 +680,11 @@ public partial class TaskQueueView : UserControl
 
         HideAllPanels();
         InvalidatePanelCache(cacheKey);
-        var juggle = dragItem.InterfaceItem is { Advanced: { Count: > 0 }, Option: { Count: > 0 } };
-        vm.ShowSettings = juggle;
         // 处理资源设置项的选项
         if (dragItem.IsResourceOptionItem)
         {
+            vm.ShowSettings = false;
+            vm.IsCommon = true;
             var hasOptions = dragItem.ResourceItem?.SelectOptions != null && dragItem.ResourceItem.SelectOptions.Count > 0;
             if (hasOptions)
             {
@@ -701,45 +701,35 @@ public partial class TaskQueueView : UserControl
         }
         else
         {
+            var interfaceItem = dragItem.InterfaceItem;
+            var hasCommonOptions = interfaceItem is { Repeatable: true }
+                || interfaceItem?.Option is { Count: > 0 };
+            var hasAdvancedOptions = interfaceItem?.Advanced is { Count: > 0 };
+            vm.ShowSettings = hasCommonOptions && hasAdvancedOptions;
+            vm.IsCommon = hasCommonOptions || !hasAdvancedOptions;
 
-            if (juggle)
+            if (!init)
             {
-                var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
+                var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
                 {
                     var p = new StackPanel();
-                    new TaskOptionGenerator(vm, SaveConfiguration).GeneratePanelContent(p, dragItem);
-                    // GeneratePanelContent(p, dragItem);
+                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateCommonPanelContent(p, dragItem);
                     CommonOptionSettings.Children.Add(p);
                     return p;
                 });
-                newPanel.IsVisible = true;
+                commonPanel.IsVisible = true;
             }
-            else
+
+            var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
             {
-                if (!init)
-                {
-                    var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
-                    {
-                        var p = new StackPanel();
-                        new TaskOptionGenerator(vm, SaveConfiguration).GenerateCommonPanelContent(p, dragItem);
-                        // GenerateCommonPanelContent(p, dragItem);
-                        CommonOptionSettings.Children.Add(p);
-                        return p;
-                    });
-                    commonPanel.IsVisible = true;
-                }
-                var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
-                {
-                    var p = new StackPanel();
-                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateAdvancedPanelContent(p, dragItem);
-                    // GenerateAdvancedPanelContent(p, dragItem);
-                    AdvancedOptionSettings.Children.Add(p);
-                    return p;
-                });
-                if (!init)
-                {
-                    advancedPanel.IsVisible = true;
-                }
+                var p = new StackPanel();
+                new TaskOptionGenerator(vm, SaveConfiguration).GenerateAdvancedPanelContent(p, dragItem);
+                AdvancedOptionSettings.Children.Add(p);
+                return p;
+            });
+            if (!init)
+            {
+                advancedPanel.IsVisible = true;
             }
         }
         if (!init)
@@ -763,6 +753,10 @@ public partial class TaskQueueView : UserControl
             if (CommonPanelCache.TryGetValue(cacheKey, out var panel))
             {
                 hasSettings = panel.IsVisible && ((Panel)panel).Children.Count > 0;
+            }
+            if (AdvancedPanelCache.TryGetValue(cacheKey, out var advancedPanel))
+            {
+                hasSettings = hasSettings || advancedPanel.IsVisible && ((Panel)advancedPanel).Children.Count > 0;
             }
 
             var hasIntroduction = !string.IsNullOrWhiteSpace(newIntroduction);
@@ -880,11 +874,10 @@ public partial class TaskQueueView : UserControl
         {
             oldPanel.IsVisible = false;
         }
-        if (AdvancedPanelCache.TryGetValue(key, out var oldaPanel))
+        if (AdvancedPanelCache.TryGetValue(key, out var oldAdvancedPanel))
         {
-            oldaPanel.IsVisible = false;
+            oldAdvancedPanel.IsVisible = false;
         }
-
         Introduction.Markdown = "";
         SetHiddenMode();
     }
@@ -907,6 +900,11 @@ public partial class TaskQueueView : UserControl
     private void HideAllPanels()
     {
         foreach (var panel in CommonPanelCache.Values)
+        {
+            panel.IsVisible = false;
+        }
+
+        foreach (var panel in AdvancedPanelCache.Values)
         {
             panel.IsVisible = false;
         }
@@ -2264,6 +2262,7 @@ public partial class TaskQueueView : UserControl
                 : combo.SelectedIndex;
 
             option.Index = resolvedIndex;
+            MFAAvalonia.Features.CombatStrategies.StrategyOptionProvider.RememberSelectedCase(option, selectedCase?.Name);
             UpdateSubOptions(resolvedIndex);
             SaveConfiguration();
         };
@@ -2513,12 +2512,13 @@ public partial class TaskQueueView : UserControl
             .ToList();
 
         // 保存全局选项到 GlobalOptionItems
-        var globalItem = allItems.FirstOrDefault(m => m.ResourceItem?.Name == "__GlobalOption__");
-        if (globalItem?.ResourceItem?.SelectOptions != null)
+        var globalOptions = allItems.FirstOrDefault(m => m.ResourceItem?.Name == "__GlobalOption__")
+            ?.ResourceItem?.SelectOptions ?? MaaProcessor.Interface?.GlobalSelectOptions;
+        if (globalOptions != null)
         {
             vm.Processor.InstanceConfiguration.SetValue(
                 ConfigurationKeys.GlobalOptionItems,
-                globalItem.ResourceItem.SelectOptions);
+                globalOptions);
         }
 
         // 保存控制器选项到 ControllerOptionItems（Name 以 "__ControllerOption__" 开头）
@@ -2776,16 +2776,10 @@ public partial class TaskQueueView : UserControl
         }
     }
 
-    #region 实时图像
+    #region 视图生命周期
 
     private void OnTaskQueueViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(TaskQueueViewModel.EnableLiveView))
-        {
-            ApplyLiveViewCardState();
-            return;
-        }
-
         if (e.PropertyName == nameof(TaskQueueViewModel.CurrentController))
         {
             UpdateDeviceColumns();
@@ -2854,18 +2848,22 @@ public partial class TaskQueueView : UserControl
         LanguageHelper.LanguageChanged -= OnLanguageChanged;
         LanguageHelper.LanguageChanged += OnLanguageChanged;
 
+        StrategyOptionProvider.CatalogRefreshed -= OnStrategyCatalogRefreshed;
+        StrategyOptionProvider.CatalogRefreshed += OnStrategyCatalogRefreshed;
+        RefreshStrategyOptionsPanel();
         UpdateViewModelSubscription(DataContext as TaskQueueViewModel);
-        ApplyLiveViewCardState();
     }
 
-    private void ApplyLiveViewCardState()
+    private void OnStrategyCatalogRefreshed()
     {
-        if (DataContext is not TaskQueueViewModel vm || LiveViewCard == null)
-        {
-            return;
-        }
+        Dispatcher.UIThread.Post(RefreshStrategyOptionsPanel, DispatcherPriority.Background);
+    }
 
-        LiveViewCard.IsVisible = vm.EnableLiveView;
+    private void RefreshStrategyOptionsPanel()
+    {
+        StrategyOptionProvider.Refresh(MaaProcessor.Interface, Path.Combine(AppPaths.ConfigDirectory, "strategies"), LoggerHelper.Warning);
+        ClearOptionPanelCaches();
+        ReopenActiveTaskPanel();
     }
 
     private void OnSetOptionRequested(DragItemViewModel item, bool value)
@@ -2877,6 +2875,7 @@ public partial class TaskQueueView : UserControl
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         TopToolbar.SizeChanged -= OnTopToolbarSizeChanged;
+        StrategyOptionProvider.CatalogRefreshed -= OnStrategyCatalogRefreshed;
 
         UpdateViewModelSubscription(null);
     }

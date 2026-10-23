@@ -1,0 +1,233 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:content="clr-namespace:SukiUI.Content;assembly=SukiUI"
+             xmlns:appControls="clr-namespace:MFAAvalonia.Controls"
+             xmlns:avalonia1="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+             x:Class="MFAAvalonia.Views.Pages.CombatStrategyView"
+             x:CompileBindings="False">
+    <UserControl.Styles>
+        <Style Selector="Border.strategy-card">
+            <Setter Property="Background" Value="{DynamicResource SukiCardBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SukiControlBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="ListBox#StrategyList &gt; ListBoxItem:selected Border#BorderBasicStyle">
+            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
+        </Style>
+        <Style Selector="Border.strategy-drag-handle:pointerover TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+        </Style>
+        <Style Selector="Border.strategy-drag-handle:focus TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+        </Style>
+        <Style Selector="ListBox#StrategyList &gt; ListBoxItem">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="BorderBasicStyle" Margin="0" Padding="8,4" CornerRadius="10">
+                        <DockPanel>
+                            <Border Name="PART_SelectionIndicator" Width="2" DockPanel.Dock="Left"
+                                    Height="12" Margin="-13,0,0,0"
+                                    Background="{DynamicResource SukiPrimaryColor75}"
+                                    CornerRadius="2" Opacity="0" />
+                            <PathIcon Name="CheckSelected" Width="17" Height="17" Margin="8,0,0,0"
+                                      Data="{x:Static content:Icons.CircleCheck}" DockPanel.Dock="Right"
+                                      Foreground="{DynamicResource SukiPrimaryColor}">
+                                <PathIcon.Transitions>
+                                    <Transitions />
+                                </PathIcon.Transitions>
+                            </PathIcon>
+                            <ContentPresenter Name="PART_ContentPresenter" Margin="0"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              Background="Transparent" BorderBrush="Transparent"
+                                              BorderThickness="{TemplateBinding BorderThickness}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              CornerRadius="{TemplateBinding CornerRadius}" />
+                        </DockPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.SyncButton Path">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <TransformGroup>
+                        <ScaleTransform ScaleX="1" ScaleY="1" />
+                        <RotateTransform Angle="0" />
+                    </TransformGroup>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style Selector="Button.SyncButton:pointerover Path">
+            <Style.Animations>
+                <Animation Duration="0:0:0.15" FillMode="Forward">
+                    <KeyFrame Cue="100%">
+                        <Setter Property="ScaleTransform.ScaleX" Value="1.1" />
+                        <Setter Property="ScaleTransform.ScaleY" Value="1.1" />
+                        <Setter Property="RotateTransform.Angle" Value="-15" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Button.SyncButton:not(:pointerover) Path">
+            <Style.Animations>
+                <Animation Duration="0:0:0.15" FillMode="Forward">
+                    <KeyFrame Cue="100%">
+                        <Setter Property="ScaleTransform.ScaleX" Value="1" />
+                        <Setter Property="ScaleTransform.ScaleY" Value="1" />
+                        <Setter Property="RotateTransform.Angle" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Button.SyncButton:pressed Path">
+            <Style.Animations>
+                <Animation Duration="0:0:0.6" FillMode="Forward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="RotateTransform.Angle" Value="0" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="RotateTransform.Angle" Value="360" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Button.TaskQueueBasicTight">
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style Selector="Button.TaskQueueBasicTight:pointerover">
+            <Setter Property="RenderTransform">
+                <ScaleTransform ScaleX="1.2" ScaleY="1.2" />
+            </Setter>
+            <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
+        </Style>
+    </UserControl.Styles>
+    <Grid ColumnDefinitions="225,12,*" Margin="12">
+        <Border Classes="strategy-card" CornerRadius="12" Padding="12">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,Auto">
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                    <TextBlock Text="策略列表" FontSize="12" FontWeight="Bold"
+                               Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="BasicTight TaskQueueBasicTight SyncButton"
+                            Width="24" Height="24" Margin="3,0,3,0" Padding="0"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="导入策略" Click="OnImportStrategy">
+                        <avalonia1:FluentIcon Icon="ArrowImport" IconSize="Size16" IconVariant="Regular" />
+                    </Button>
+                    <Button Grid.Column="2" Classes="BasicTight TaskQueueBasicTight SyncButton"
+                            Width="24" Height="24" Margin="3,0,3,0" Padding="0"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="刷新策略列表" Click="OnRefreshStrategies">
+                        <Path Data="{StaticResource RefreshGeometry}" Width="16" Height="16"
+                              Stretch="Uniform"
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                    </Button>
+                </Grid>
+                <Border Grid.Row="1" Height="1" Background="{DynamicResource SukiControlBorderBrush}"
+                        Margin="0,0,0,8" />
+                <ListBox Grid.Row="2" x:Name="StrategyList" SelectionChanged="OnStrategySelected">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="8,6" CornerRadius="6" Background="Transparent">
+                                <Border.ContextMenu>
+                                    <appControls:LifecycleSafeContextMenu Opening="OnStrategyMenuOpening">
+                                        <MenuItem Header="复制" Click="OnCopyStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="Copy" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="粘贴" Click="OnPasteStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="ClipboardPaste" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="导出" Click="OnExportStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="ArrowExport" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="重命名" Click="OnRenameStrategy">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Icon="NotepadEdit" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="删除" Classes="DangerContextDelete" Click="OnDeleteStrategyFromMenu">
+                                            <MenuItem.Icon>
+                                                <avalonia1:FluentIcon Foreground="{DynamicResource SukiDangerColor}"
+                                                                      Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </appControls:LifecycleSafeContextMenu>
+                                </Border.ContextMenu>
+                                <TextBlock Text="{Binding Name}" FontSize="14" />
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <Button Grid.Row="3" x:Name="NewStrategy" Content="＋" FontSize="20" Height="36"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        ToolTip.Tip="新增策略" Click="OnNewStrategy" />
+                <Button Grid.Row="4" x:Name="LoadWarnings" IsVisible="False" Content="部分策略文件无法读取"
+                        Margin="0,8,0,0" HorizontalAlignment="Stretch" Click="OnLoadWarnings" />
+            </Grid>
+        </Border>
+        <Grid Grid.Column="2" RowDefinitions="*,Auto">
+            <ScrollViewer x:Name="StageScroll" HorizontalScrollBarVisibility="Disabled" Margin="0,0,8,8">
+                <StackPanel Spacing="12" Margin="0,0,0,12">
+                    <StackPanel x:Name="StageCards" Spacing="12" />
+                    <Button x:Name="AddStage" Content="＋" FontSize="26" Height="48"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            ToolTip.Tip="新增阶段" Click="OnAddStage" />
+                </StackPanel>
+            </ScrollViewer>
+            <Border Grid.Row="1" BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                    BorderThickness="0,1,0,0" Background="{DynamicResource SukiCardBackground}"
+                    Padding="8,14,8,10" Margin="-6,8,0,0">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                        <Button x:Name="SaveStrategy" Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnSaveStrategy">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="保存" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnExpandAll">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="ArrowExpand" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="全部展开" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="BasicTight TaskQueueBasicTight"
+                                Background="Transparent" BorderThickness="0" Padding="4,2"
+                                Click="OnCollapseAll">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <avalonia1:FluentIcon Icon="ArrowCollapseAll" IconSize="Size16" IconVariant="Regular" />
+                                <TextBlock Text="全部折叠" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" x:Name="SaveStatus" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="55" />
+                </Grid>
+            </Border>
+        </Grid>
+        <Border Grid.Column="1" Width="1" HorizontalAlignment="Center"
+                Background="{DynamicResource SukiControlBorderBrush}" />
+    </Grid>
+</UserControl>

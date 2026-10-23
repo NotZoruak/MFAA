@@ -1,6 +1,6 @@
-﻿[remote.github]
-owner = "MaaXYZ"
-repo = "MFAAvalonia"
+[remote.github]
+owner = "NotZoruak"
+repo = "MFAA"
 
 [git]
 # parse the commits based on https://www.conventionalcommits.org

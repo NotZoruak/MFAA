@@ -42,7 +42,7 @@
                              Maximum="100" VerticalAlignment="Center"
                              Value="{Binding ConfigSwitchProgress}"
                              IsVisible="{Binding IsConfigSwitching}" />
-                <suki:SukiSideMenu IsVisible="{Binding '!IsConfigSwitching'}" IsMenuExpanded="False"
+                <suki:SukiSideMenu x:Name="MainSideMenu" IsVisible="{Binding '!IsConfigSwitching'}" IsMenuExpanded="False"
                                    IsSearchEnabled="False" OpenPaneLength="150">
                     <suki:SukiSideMenu.Items>
                         <suki:SukiSideMenuItem IsContentMovable="False"
@@ -50,6 +50,13 @@
                                                Icon="{fluent:FluentIcon Icon=TasksApp,
                                                                 IconVariant=Regular}"
                                                PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:InstanceContainerView}}" />
+                        <suki:SukiSideMenuItem x:Name="CombatStrategyMenuItem" IsContentMovable="False"
+                                               Header="策略"
+                                               PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CombatStrategyView}}">
+                            <suki:SukiSideMenuItem.Icon>
+                                <fluentIcon:FluentIcon Icon="NotepadEdit" IconVariant="Regular" />
+                            </suki:SukiSideMenuItem.Icon>
+                        </suki:SukiSideMenuItem>
                         <suki:SukiSideMenuItem IsContentMovable="False"
                                                Header="{markup:I18n {x:Static helper:LangKeys.Monitor}}"
                                                PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:MonitorView}}">
