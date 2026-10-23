@@ -23,6 +23,8 @@ MFAAvalonia is a general-purpose [MaaFramework](https://github.com/MaaXYZ/MaaFra
 
 MFAAvalonia does not include application-specific resources. It is normally integrated into a MaaFramework-based resource project.
 
+This repository is a customized version based on the upstream [MaaXYZ/MFAAvalonia](https://github.com/MaaXYZ/MFAAvalonia) and currently provides the desktop GUI for [MaaPazugiri](https://github.com/NotZoruak/MaaPazugiri). It will evolve independently to meet MaaPazugiri's needs and may gradually diverge from upstream in features and release cadence; upstream changes will be incorporated selectively as needed.
+
 ## Features
 
 ### Tasks and resources
