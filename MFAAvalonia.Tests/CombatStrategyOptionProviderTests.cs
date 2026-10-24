@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using MFAAvalonia.Extensions.MaaFW;
@@ -23,9 +24,12 @@ public sealed class CombatStrategyOptionProviderTests : IDisposable
         Assert.Equal("default", ReadStrategyId(selected));
     }
 
-    [Fact]
-    public void CreateCases_EnumeratesValidFilesAndPassesStrategyIds()
+    [Theory]
+    [InlineData("zh-CN", "11111111111111111111111111111111", "22222222222222222222222222222222")]
+    [InlineData("en-US", "22222222222222222222222222222222", "11111111111111111111111111111111")]
+    public void CreateCases_EnumeratesValidFilesAndPassesStrategyIds(string culture, string firstId, string secondId)
     {
+        using var scope = new CultureScope(culture);
         Directory.CreateDirectory(_directory);
         WriteStrategy("22222222222222222222222222222222", "夜战策略");
         WriteStrategy("11111111111111111111111111111111", "默认队伍策略");
@@ -34,10 +38,13 @@ public sealed class CombatStrategyOptionProviderTests : IDisposable
 
         var cases = StrategyOptionProvider.CreateCases(_directory);
 
-        Assert.Equal(new[] { "default", "11111111111111111111111111111111", "22222222222222222222222222222222" }, cases.Select(item => item.Name));
-        Assert.Equal("默认队伍策略", cases[1].Label);
-        Assert.Equal("11111111111111111111111111111111", ReadStrategyId(cases[1]));
-        Assert.Equal("22222222222222222222222222222222", ReadStrategyId(cases[2]));
+        Assert.Equal(new[] { "default", firstId, secondId }, cases.Select(item => item.Name));
+        var defaultTeam = Assert.Single(cases, item => item.Name == "11111111111111111111111111111111");
+        Assert.Equal("默认队伍策略", defaultTeam.Label);
+        Assert.Equal("11111111111111111111111111111111", ReadStrategyId(defaultTeam));
+        var nightTeam = Assert.Single(cases, item => item.Name == "22222222222222222222222222222222");
+        Assert.Equal("夜战策略", nightTeam.Label);
+        Assert.Equal("22222222222222222222222222222222", ReadStrategyId(nightTeam));
     }
 
     [Fact]
@@ -69,6 +76,14 @@ public sealed class CombatStrategyOptionProviderTests : IDisposable
 
     private static string? ReadStrategyId(MaaInterface.MaaInterfaceOptionCase item) =>
         item.PipelineOverride?["RB_RunBattle"]?["action"]?["param"]?["custom_action_param"]?["strategy_id"]?.ToString();
+
+    private sealed class CultureScope : IDisposable
+    {
+        private readonly CultureInfo _original = CultureInfo.CurrentCulture;
+
+        public CultureScope(string name) => CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(name);
+        public void Dispose() => CultureInfo.CurrentCulture = _original;
+    }
 
     public void Dispose()
     {
