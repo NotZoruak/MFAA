@@ -37,6 +37,7 @@ public partial class MFATask : ObservableObject
     [ObservableProperty] private int _count = 1;
     [ObservableProperty] private Func<Task> _action;
     public Func<Task<MaaJobStatus>>? MaaAction { get; set; }
+    public Func<Task<MaaJobStatus>>? StopCurrentIterationAsync { get; set; }
     // [ObservableProperty] private Dictionary<string, MaaNode> _tasks = new();
     [ObservableProperty] private bool _isUpdateRelated;
 
@@ -70,9 +71,10 @@ public partial class MFATask : ObservableObject
     private readonly object _earlyCompletionLock = new();
     private string? _earlyCompletionReason;
     private bool _earlyCompletionRequested;
+    private TaskCompletionSource _earlyCompletionSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <summary>
-    /// 请求本轮结束后停止该队列项的剩余重复次数。
+    /// 请求停止当前执行，并取消该队列项的剩余重复次数。
     /// </summary>
     public bool RequestEarlyCompletion(string? reason)
     {
@@ -83,6 +85,7 @@ public partial class MFATask : ObservableObject
 
             _earlyCompletionReason = reason;
             _earlyCompletionRequested = true;
+            _earlyCompletionSignal.TrySetResult();
             return true;
         }
     }
@@ -100,6 +103,7 @@ public partial class MFATask : ObservableObject
             reason = _earlyCompletionReason;
             _earlyCompletionReason = null;
             _earlyCompletionRequested = false;
+            _earlyCompletionSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
             return true;
         }
     }
@@ -140,6 +144,7 @@ public partial class MFATask : ObservableObject
             OwnerViewModel?.MarkTaskFailed(SourceItem, RunId, detail);
         }
 
+        var stoppingForEarlyCompletion = false;
         try
         {
             Interlocked.Exchange(ref _battleVictoryCount, 0);
@@ -158,20 +163,31 @@ public partial class MFATask : ObservableObject
                     OwnerViewModel?.AddLogByKey(LangKeys.TaskStart, (Avalonia.Media.IBrush?)null, true, true, LanguageHelper.GetLocalizedString(Name));
                     OwnerViewModel?.SetCurrentTaskName(LanguageHelper.GetLocalizedString(Name));
                 }
+                MaaJobStatus? jobStatus = null;
                 if (MaaAction != null)
                 {
-                    var jobStatus = await MaaAction();
-                    token.ThrowIfCancellationRequested();
-                    if (jobStatus != MaaJobStatus.Succeeded)
+                    Task completionRequested;
+                    lock (_earlyCompletionLock)
+                        completionRequested = _earlyCompletionSignal.Task;
+
+                    var iteration = MaaAction();
+                    if (StopCurrentIterationAsync != null
+                        && await Task.WhenAny(iteration, completionRequested) == completionRequested
+                        && !iteration.IsCompleted)
                     {
-                        hasFailed = true;
-                        failureMessage = jobStatus.ToString();
-                        if (!ContinueOnError)
-                        {
-                            MarkFailed(failureMessage);
-                            return Complete(MFATaskStatus.FAILED);
-                        }
+                        token.ThrowIfCancellationRequested();
+                        stoppingForEarlyCompletion = true;
+                        // 在调度层等待停止，避免自定义动作回调等待其自身退出。
+                        var stopStatus = await StopCurrentIterationAsync()
+                            .WaitAsync(TimeSpan.FromSeconds(30), token);
+                        if (stopStatus != MaaJobStatus.Succeeded)
+                            throw new InvalidOperationException("结束当前任务时底层执行器未能停止。");
                     }
+
+                    // 底层尚未退出时不能启动后续队列项。
+                    jobStatus = await iteration;
+                    stoppingForEarlyCompletion = false;
+                    token.ThrowIfCancellationRequested();
                 }
                 else
                 {
@@ -188,6 +204,17 @@ public partial class MFATask : ObservableObject
                     LoggerHelper.Info(message);
                     OwnerViewModel?.Processor.AddLog(message, (IBrush?)null);
                     break;
+                }
+
+                if (jobStatus is { } status && status != MaaJobStatus.Succeeded)
+                {
+                    hasFailed = true;
+                    failureMessage = status.ToString();
+                    if (!ContinueOnError)
+                    {
+                        MarkFailed(failureMessage);
+                        return Complete(MFATaskStatus.FAILED);
+                    }
                 }
 
                 OwnerViewModel?.MarkTaskIterationCompleted(SourceItem, RunId);
@@ -222,7 +249,7 @@ public partial class MFATask : ObservableObject
         {
             MarkFailed(ex.Message);
             LoggerHelper.Error($"任务执行失败：{LanguageHelper.GetLocalizedString(Name)}");
-            return Complete(MFATaskStatus.FAILED, ContinueOnError);
+            return Complete(MFATaskStatus.FAILED, ContinueOnError && !stoppingForEarlyCompletion);
         }
         catch (OperationCanceledException)
         {
@@ -240,7 +267,7 @@ public partial class MFATask : ObservableObject
         {
             MarkFailed(ex.Message);
             LoggerHelper.Error($"任务执行异常：任务={LanguageHelper.GetLocalizedString(Name)}，原因={ex.Message}", ex);
-            return Complete(MFATaskStatus.FAILED, ContinueOnError);
+            return Complete(MFATaskStatus.FAILED, ContinueOnError && !stoppingForEarlyCompletion);
         }
     }
 }

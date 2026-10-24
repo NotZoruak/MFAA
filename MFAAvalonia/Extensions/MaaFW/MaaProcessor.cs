@@ -398,6 +398,24 @@ public class MaaProcessor
             activeTask.RecordBattleOutcome(succeeded: false);
     }
 
+    private void RecordResidentBattleOutcomeFromFocus(JObject callback, string message)
+    {
+        if (callback["focus"] is not JObject focus)
+            return;
+
+        var focusContent = focus[message];
+        var content = focusContent?.Type switch
+        {
+            JTokenType.String => focusContent.Value<string>(),
+            JTokenType.Array => string.Join("\n", focusContent.Values<string>()),
+            JTokenType.Object => focusContent["content"]?.Value<string>(),
+            _ => null
+        };
+
+        if (!string.IsNullOrEmpty(content))
+            RecordResidentBattleOutcomeFromResourceLog(content);
+    }
+
     public void AddLog(string content,
         string color = "",
         string weight = "Regular",
@@ -2299,6 +2317,8 @@ public class MaaProcessor
         // Android tasker then deadlocks before StartApp reaches the controller.
         if (hasFocus)
         {
+            RecordResidentBattleOutcomeFromFocus(jObject, args.Message);
+
             _focusHandler ??= new FocusHandler(AutoInitDictionary, ViewModel!);
             _focusHandler.UpdateDictionary(AutoInitDictionary);
 
@@ -4643,6 +4663,11 @@ public class MaaProcessor
             Count = count,
             Type = MFATask.MFATaskType.MAAFW,
             MaaAction = action,
+            StopCurrentIterationAsync = () =>
+            {
+                var tasker = MaaTasker ?? throw new InvalidOperationException("当前任务执行器不存在。");
+                return Task.Run(() => tasker.Stop().Wait());
+            },
             OwnerViewModel = ViewModel,
             SourceItem = sourceItem,
             RunId = runId,

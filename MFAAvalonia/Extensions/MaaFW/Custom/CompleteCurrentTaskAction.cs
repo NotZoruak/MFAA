@@ -6,7 +6,7 @@ using System;
 namespace MFAAvalonia.Extensions.MaaFW.Custom;
 
 /// <summary>
-/// 请求当前队列项在本轮结束后停止重复执行。
+/// 请求结束当前运行中的任务，并取消当前队列项的剩余重复次数。
 /// </summary>
 public sealed class CompleteCurrentTaskAction : IMaaCustomAction
 {
