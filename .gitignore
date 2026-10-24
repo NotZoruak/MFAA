@@ -31,6 +31,8 @@ build_output.txt
 !/MFAAvalonia.Tests/CombatStrategy*Tests.cs
 !/MFAAvalonia.Tests/TaskRecoveryMonitorTests.cs
 !/MFAAvalonia.Tests/TaskStopLifecycleTests.cs
+!/MFAAvalonia.Tests/TaskEarlyCompletionTests.cs
+!/MFAAvalonia.Tests/TaskEarlyCompletionIntegrationTests.cs
 !/MFAAvalonia.Tests/TaskSelectionInteractionTests.cs
 /MFAAvalonia/AssemblyInfo.cs
 workflows/android/__pycache__/mfa_android_agent.cpython-312.pyc

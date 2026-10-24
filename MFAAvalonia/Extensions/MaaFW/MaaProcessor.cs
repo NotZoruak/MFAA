@@ -4643,6 +4643,11 @@ public class MaaProcessor
             Count = count,
             Type = MFATask.MFATaskType.MAAFW,
             MaaAction = action,
+            StopCurrentIterationAsync = () =>
+            {
+                var tasker = MaaTasker ?? throw new InvalidOperationException("当前任务执行器不存在。");
+                return Task.Run(() => tasker.Stop().Wait());
+            },
             OwnerViewModel = ViewModel,
             SourceItem = sourceItem,
             RunId = runId,
