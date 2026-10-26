@@ -558,6 +558,19 @@ public class MaaProcessor
         return activeTask?.RequestEarlyCompletion(reason) == true;
     }
 
+    public bool RecordBrokenJadeStaminaRecoveryForActiveTask(int maximum, out int count, out bool limitReached)
+    {
+        var activeTask = Volatile.Read(ref _activeQueueTask);
+        if (activeTask == null)
+        {
+            count = 0;
+            limitReached = false;
+            return false;
+        }
+
+        return activeTask.RecordBrokenJadeStaminaRecovery(maximum, out count, out limitReached);
+    }
+
     public void LogRestartEvent(string eventName, string message, bool isError)
     {
         var content = $"卡死恢复：{eventName}：{message}";
@@ -5322,6 +5335,7 @@ public class MaaProcessor
             tasker.Resource.Register(new Custom.HeiLiuAction((content, color) => AddLog(content, color)));
             tasker.Resource.Register(new Custom.SwitchInstanceAction(this));
             tasker.Resource.Register(new Custom.CompleteCurrentTaskAction(this));
+            tasker.Resource.Register(new Custom.RecordBrokenJadeStaminaRecoveryAction(this));
             LoggerHelper.Info("已注册内置特殊任务动作。");
 
             // 获取当前资源的自定义目录

@@ -68,6 +68,23 @@ public partial class MFATask : ObservableObject
             Interlocked.Increment(ref _battleFailureCount);
     }
 
+    private int _brokenJadeStaminaRecoveryCount;
+
+    public bool RecordBrokenJadeStaminaRecovery(int maximum, out int count, out bool limitReached)
+    {
+        count = 0;
+        limitReached = false;
+        if (!IsResidentBattleTask || maximum < -1)
+            return false;
+
+        count = Interlocked.Increment(ref _brokenJadeStaminaRecoveryCount);
+        limitReached = maximum >= 0 && count >= maximum;
+        if (limitReached)
+            RequestEarlyCompletion($"已达到碎玉换体最大次数（{count}/{maximum}）");
+
+        return true;
+    }
+
     private readonly object _earlyCompletionLock = new();
     private string? _earlyCompletionReason;
     private bool _earlyCompletionRequested;
@@ -149,6 +166,7 @@ public partial class MFATask : ObservableObject
         {
             Interlocked.Exchange(ref _battleVictoryCount, 0);
             Interlocked.Exchange(ref _battleFailureCount, 0);
+            Interlocked.Exchange(ref _brokenJadeStaminaRecoveryCount, 0);
             var infinite = Count < 0;
             if (Count < 0)
                 Count = int.MaxValue;
