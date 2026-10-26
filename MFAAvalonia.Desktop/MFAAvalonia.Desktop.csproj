@@ -1,6 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
+        <Version>2.16.3-beta.1</Version>
+        <AssemblyVersion>2.16.3.0</AssemblyVersion>
+        <FileVersion>2.16.3.0</FileVersion>
+        <InformationalVersion>2.16.3-beta.1</InformationalVersion>
         <AssemblyName>MaaPazugiri</AssemblyName>
         <OutputName>MaaPazugiri</OutputName>
         <TargetFramework>net10.0</TargetFramework>
