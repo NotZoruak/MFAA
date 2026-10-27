@@ -34,7 +34,7 @@ public sealed class RecordBrokenJadeStaminaRecoveryAction : IMaaCustomAction
 
             LoggerHelper.Info($"[碎玉换体计数] 当前任务项已成功换体 {count} 次，最大次数 {maximum}。");
             if (limitReached)
-                _owner.AddLog($"[碎玉换体计数] 已达到本次任务最大换体次数 {maximum}，结束当前任务项。");
+                _owner.AddLog($"[碎玉换体计数] 已达到本次任务最大换体次数 {maximum}，继续作战并在下一次体力耗尽时结束当前任务项。");
 
             return true;
         }

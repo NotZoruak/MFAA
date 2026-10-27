@@ -1168,7 +1168,8 @@ public static class VersionChecker
             var @interface = JObject.Parse(jsonContent);
             if (@interface != null)
             {
-                @interface["github"] = MaaProcessor.Interface?.Github ?? MaaProcessor.Interface?.Url;
+                if (string.IsNullOrWhiteSpace(@interface["github"]?.ToString()))
+                    @interface["github"] = MaaProcessor.Interface?.Github ?? MaaProcessor.Interface?.Url;
                 @interface["version"] = latestVersion;
             }
             updateTransaction.WriteAllText(newInterfacePath, @interface.ToString(Formatting.Indented));
