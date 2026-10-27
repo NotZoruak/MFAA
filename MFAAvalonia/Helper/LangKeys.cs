@@ -353,6 +353,7 @@ public static class LangKeys
 	public static readonly string TaskStackError = "TaskStackError";
 	public static readonly string TaskStart = "TaskStart";
 	public static readonly string TaskRoundComplete = "TaskRoundComplete";
+	public static readonly string ResidentBattleResultSummary = "ResidentBattleResultSummary";
 	public static readonly string TaskStopped = "TaskStopped";
 	public static readonly string TaskAddedToast = "TaskAddedToast";
 	public static readonly string TaskDeletedToast = "TaskDeletedToast";

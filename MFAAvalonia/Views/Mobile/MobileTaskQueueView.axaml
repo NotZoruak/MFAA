@@ -6,6 +6,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
              xmlns:extensions="clr-namespace:MFAAvalonia.Extensions"
+             xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
              xmlns:helper="clr-namespace:MFAAvalonia.Helper"
              xmlns:markup="https://codewf.com"
              xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
@@ -220,7 +221,7 @@
                                Foreground="{DynamicResource SukiLowText}" />
                 </StackPanel>
                 <Button x:Name="SelectAllButton" Grid.Column="1" Width="42" Height="42" Padding="0"
-                        Command="{Binding SelectAllCommand}" ToolTip.Tip="Select all">
+                        Command="{Binding SelectAllCommand}" IsEnabled="{Binding Idle}" ToolTip.Tip="Select all">
                     <fluent:FluentIcon Icon="SelectAllOn" IconSize="Size20" />
                 </Button>
                 <Button x:Name="AddTaskButton" Grid.Column="2" Width="42" Height="42" Padding="0"
@@ -253,8 +254,14 @@
                             </Border.ContextMenu>
                             <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,22">
                                 <CheckBox IsThreeState="True" MinWidth="40"
-                                          IsEnabled="{Binding !IsResourceOptionItem}"
-                                          IsChecked="{Binding IsCheckedWithNull}" />
+                                          IsChecked="{Binding IsCheckedWithNull}">
+                                    <CheckBox.IsEnabled>
+                                        <MultiBinding Converter="{x:Static converters:BooleanAndConverter.NegateSecond}">
+                                            <Binding Path="OwnerViewModel.Idle" />
+                                            <Binding Path="IsResourceOptionItem" />
+                                        </MultiBinding>
+                                    </CheckBox.IsEnabled>
+                                </CheckBox>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
                                                TextTrimming="CharacterEllipsis" />

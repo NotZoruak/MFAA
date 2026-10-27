@@ -23,6 +23,8 @@ MFAAvalonia 是基于 [Avalonia UI](https://github.com/AvaloniaUI/Avalonia) 和 
 
 MFAAvalonia 本身不包含具体业务资源。通常应将它集成到基于 MaaFramework 的资源项目中使用。
 
+本仓库是基于上游 [MaaXYZ/MFAAvalonia](https://github.com/MaaXYZ/MFAAvalonia) 的定制版本，目前作为 [MaaPazugiri](https://github.com/NotZoruak/MaaPazugiri) 的桌面 GUI。它会按 MaaPazugiri 的需求独立设计和演进，后续在功能与版本节奏上将逐步与上游分流；上游改动按需选择性同步。
+
 ## 主要功能
 
 ### 任务与资源

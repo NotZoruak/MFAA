@@ -331,6 +331,9 @@
   <data name="TaskRoundComplete" xml:space="preserve">
     <value>タスク完了: {0} 進捗 {1}/{2}</value>
   </data>
+  <data name="ResidentBattleResultSummary" xml:space="preserve">
+    <value>常設戦闘結果：勝利 {0} 戦、敗北 {1} 戦</value>
+  </data>
   <data name="TaskStopped" xml:space="preserve">
     <value>タスクは停止しました</value>
   </data>

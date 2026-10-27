@@ -386,6 +386,36 @@ public class MaaProcessor
         });
     }
 
+    internal void RecordResidentBattleOutcomeFromResourceLog(string content)
+    {
+        var activeTask = Volatile.Read(ref _activeQueueTask);
+        if (activeTask?.IsResidentBattleTask != true)
+            return;
+
+        if (content.Contains("已确认战斗胜利", StringComparison.Ordinal))
+            activeTask.RecordBattleOutcome(succeeded: true);
+        else if (content.Contains("已确认战斗失败", StringComparison.Ordinal))
+            activeTask.RecordBattleOutcome(succeeded: false);
+    }
+
+    private void RecordResidentBattleOutcomeFromFocus(JObject callback, string message)
+    {
+        if (callback["focus"] is not JObject focus)
+            return;
+
+        var focusContent = focus[message];
+        var content = focusContent?.Type switch
+        {
+            JTokenType.String => focusContent.Value<string>(),
+            JTokenType.Array => string.Join("\n", focusContent.Values<string>()),
+            JTokenType.Object => focusContent["content"]?.Value<string>(),
+            _ => null
+        };
+
+        if (!string.IsNullOrEmpty(content))
+            RecordResidentBattleOutcomeFromResourceLog(content);
+    }
+
     public void AddLog(string content,
         string color = "",
         string weight = "Regular",
@@ -526,6 +556,19 @@ public class MaaProcessor
     {
         var activeTask = Volatile.Read(ref _activeQueueTask);
         return activeTask?.RequestEarlyCompletion(reason) == true;
+    }
+
+    public bool RecordBrokenJadeStaminaRecoveryForActiveTask(int maximum, out int count, out bool limitReached)
+    {
+        var activeTask = Volatile.Read(ref _activeQueueTask);
+        if (activeTask == null)
+        {
+            count = 0;
+            limitReached = false;
+            return false;
+        }
+
+        return activeTask.RecordBrokenJadeStaminaRecovery(maximum, out count, out limitReached);
     }
 
     public void LogRestartEvent(string eventName, string message, bool isError)
@@ -2287,6 +2330,8 @@ public class MaaProcessor
         // Android tasker then deadlocks before StartApp reaches the controller.
         if (hasFocus)
         {
+            RecordResidentBattleOutcomeFromFocus(jObject, args.Message);
+
             _focusHandler ??= new FocusHandler(AutoInitDictionary, ViewModel!);
             _focusHandler.UpdateDictionary(AutoInitDictionary);
 
@@ -4631,6 +4676,11 @@ public class MaaProcessor
             Count = count,
             Type = MFATask.MFATaskType.MAAFW,
             MaaAction = action,
+            StopCurrentIterationAsync = () =>
+            {
+                var tasker = MaaTasker ?? throw new InvalidOperationException("当前任务执行器不存在。");
+                return Task.Run(() => tasker.Stop().Wait());
+            },
             OwnerViewModel = ViewModel,
             SourceItem = sourceItem,
             RunId = runId,
@@ -5285,6 +5335,7 @@ public class MaaProcessor
             tasker.Resource.Register(new Custom.HeiLiuAction((content, color) => AddLog(content, color)));
             tasker.Resource.Register(new Custom.SwitchInstanceAction(this));
             tasker.Resource.Register(new Custom.CompleteCurrentTaskAction(this));
+            tasker.Resource.Register(new Custom.RecordBrokenJadeStaminaRecoveryAction(this));
             LoggerHelper.Info("已注册内置特殊任务动作。");
 
             // 获取当前资源的自定义目录

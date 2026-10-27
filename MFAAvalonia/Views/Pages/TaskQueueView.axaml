@@ -1143,8 +1143,14 @@
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               extensions:CheckBoxExtensions.LimitDragDrop="True"
-                                              IsEnabled="{Binding !IsResourceOptionItem}"
-                                              IsChecked="{Binding IsCheckedWithNull}" />
+                                              IsChecked="{Binding IsCheckedWithNull}">
+                                        <CheckBox.IsEnabled>
+                                            <MultiBinding Converter="{x:Static converters:BooleanAndConverter.NegateSecond}">
+                                                <Binding Path="OwnerViewModel.Idle" />
+                                                <Binding Path="IsResourceOptionItem" />
+                                            </MultiBinding>
+                                        </CheckBox.IsEnabled>
+                                    </CheckBox>
                                     <Grid Grid.Column="1"
                                           ColumnDefinitions="Auto,*"
                                           Background="Transparent"
