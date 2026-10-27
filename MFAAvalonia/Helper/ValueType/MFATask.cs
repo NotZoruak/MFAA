@@ -79,8 +79,6 @@ public partial class MFATask : ObservableObject
 
         count = Interlocked.Increment(ref _brokenJadeStaminaRecoveryCount);
         limitReached = maximum >= 0 && count >= maximum;
-        if (limitReached)
-            RequestEarlyCompletion($"已达到碎玉换体最大次数（{count}/{maximum}）");
 
         return true;
     }
